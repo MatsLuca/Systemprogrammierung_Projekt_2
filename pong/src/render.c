@@ -7,30 +7,65 @@
 #include <ncurses.h>
 #include "render.h"
 
-static void draw_paddle(const paddle_t *paddle)
-{
-    for (int i = 0; i < paddle->width; ++i)
-    {
-        mvaddch(paddle->y, paddle->x + i, '=');
-    }
-}
+extern int player_flash;
+extern int bot_flash;
 
+/* Aktuell keine zusätzliche Initialisierung nötig, Farben werden in main gesetzt */
 void render_init(void)
 {
-    /* Farben hier nicht benötigt */
+    /* leer */
 }
 
-void render_frame(const game_state_t *game)
+/* Fette, einfarbige Schläger */
+static void draw_paddle(const paddle_t *p, int color, int flash)
+{
+    if (flash) attron(A_REVERSE);
+    attron(COLOR_PAIR(color));
+    for (int i = 0; i < p->width; ++i)
+        mvaddch(p->y, p->x + i, ACS_BLOCK);
+    attroff(COLOR_PAIR(color));
+    if (flash) attroff(A_REVERSE);
+}
+
+void render_frame(const game_state_t *g)
 {
     erase();
 
-    /* Punktestand und Steuerung anzeigen */
-    mvprintw(0, 2, "Score: %d   (q = quit)", game->score);
+    /* 1.  Spielfeld-Rahmen (vollständig) ---------------------------- */
+    attron(A_DIM);
 
-    /* Spielobjekte zeichnen */
-    draw_paddle(&game->player);
-    draw_paddle(&game->bot);
-    mvaddch((int)game->ball.y, (int)game->ball.x, 'O');
+    /* obere Kante mit Ecken */
+    mvaddch(g->bot.y - 1,               0,                 ACS_ULCORNER);
+    mvhline(g->bot.y - 1,               1,                 ACS_HLINE, g->field_width - 2);
+    mvaddch(g->bot.y - 1, g->field_width - 1,              ACS_URCORNER);
+
+    /* untere Kante mit Ecken */
+    mvaddch(g->player.y + 1,            0,                 ACS_LLCORNER);
+    mvhline(g->player.y + 1,            1,                 ACS_HLINE, g->field_width - 2);
+    mvaddch(g->player.y + 1, g->field_width - 1,           ACS_LRCORNER);
+
+    /* linke und rechte Seiten */
+    int inner_height = g->player.y - g->bot.y;             /* Zeilen dazwischen */
+    mvvline(g->bot.y,                    0,                 ACS_VLINE, inner_height);
+    mvvline(g->bot.y, g->field_width - 1,                  ACS_VLINE, inner_height);
+
+    attroff(A_DIM);
+
+    /* 2.  Score-Zeile ---------------------------------------------- */
+    attron(COLOR_PAIR(5) | A_BOLD);
+    mvprintw(0, 2, "Score: %d   (q = quit)", g->score);
+    attroff(COLOR_PAIR(5) | A_BOLD);
+
+    /* 3.  Spielobjekte --------------------------------------------- */
+    draw_paddle(&g->player, 3, player_flash > 0);
+    draw_paddle(&g->bot,    4, bot_flash    > 0);
+    if (player_flash > 0) player_flash--;
+    if (bot_flash    > 0) bot_flash--;
+
+    attron(COLOR_PAIR(2) | A_BOLD);
+    mvaddch((int)g->ball.y, (int)g->ball.x, ACS_DIAMOND);
+    attroff(COLOR_PAIR(2) | A_BOLD);
 
     refresh();
 }
+

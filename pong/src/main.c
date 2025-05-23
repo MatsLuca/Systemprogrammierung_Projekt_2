@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <stdio.h>
+#include <locale.h>
 
 #include "input.h"
 #include "ai.h"
@@ -17,7 +18,8 @@
 #include "cleanup.h"
 #include "config.h"
 
-#define TICK_RATE_MS 100    /* ~10 FPS für flüssiges Spiel */
+#define PHYSICS_DT_MS 100   /* Ball‑Physik nur alle 100 ms */
+#define RENDER_DT_MS   16   /* ~60 FPS für flüssiges Bild  */
 
 static void sleep_ms(unsigned int ms)
 {
@@ -27,18 +29,37 @@ static void sleep_ms(unsigned int ms)
     nanosleep(&ts, NULL);
 }
 
+/* Aktuelle Laufzeit in Millisekunden (monotonic clock) */
+static unsigned long ms_now(void)
+{
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (unsigned long)(ts.tv_sec * 1000UL + ts.tv_nsec / 1000000UL);
+}
+
 int main(int argc, char *argv[])
 {
+    setlocale(LC_ALL, "");   /* Unicode aktivieren */
     (void)argc;
     (void)argv;
 
-    /* ncurses initialisieren */
     initscr();
     cbreak();
     noecho();
     keypad(stdscr, TRUE);
     nodelay(stdscr, TRUE);
     curs_set(0);
+
+    /* Farben, falls Terminal das kann */
+    if (has_colors()) {
+        start_color();
+        use_default_colors();          /* –1 = Term-Hintergrund */
+        init_pair(1, COLOR_WHITE,  -1);   /* Standardtext   */
+        init_pair(2, COLOR_CYAN,   -1);   /* Ball           */
+        init_pair(3, COLOR_YELLOW, -1);   /* Spieler-Paddle */
+        init_pair(4, COLOR_MAGENTA,-1);   /* Bot-Paddle     */
+        init_pair(5, COLOR_GREEN,  -1);   /* Score-Zeile    */
+    }
 
     /* Terminalgröße prüfen */
     int max_y, max_x;
@@ -57,6 +78,7 @@ int main(int argc, char *argv[])
     render_init();
 
     game_state_t game = physics_create_game(max_x, max_y);
+    unsigned long last_phys = ms_now();
 
     /* Haupt-Spielschleife */
     bool running = true;
@@ -64,26 +86,24 @@ int main(int argc, char *argv[])
     {
         /* Eingabe verarbeiten */
         input_action_t action = input_poll();
-        if (action.quit)
-        {
-            running = false;
+        if (action.quit) {
             break;
         }
         physics_player_move(&game, action.dx);
 
-        /* KI aktualisieren */
-        ai_update(&game);
-
-        /* Physik aktualisieren */
-        if (!physics_update_ball(&game))
-        {
-            running = false;
+        /* Physik & KI nur alle 100 ms -------------------------------- */
+        unsigned long now = ms_now();
+        if (now - last_phys >= PHYSICS_DT_MS) {
+            ai_update(&game);
+            if (!physics_update_ball(&game)) {
+                break;
+            }
+            last_phys = now;
         }
 
-        /* Frame anzeigen */
+        /* Frame anzeigen (60 FPS) ------------------------------------ */
         render_frame(&game);
-
-        sleep_ms(TICK_RATE_MS);
+        sleep_ms(RENDER_DT_MS);
     }
 
     /* Spielende anzeigen */

@@ -42,3 +42,6 @@ int main(void)
     RUN_TEST(test_speed_after_score_scaling);
     return UNITY_END();
 }
+
+void setUp(void) {}
+void tearDown(void) {}

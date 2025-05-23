@@ -7,9 +7,14 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <math.h>
+#include <ncurses.h>
+#include <time.h>
 #include "physics.h"
 #include "config.h"
 
+/* Flag für Flash-Effekt */
+int player_flash = 0;
+int bot_flash    = 0;
 
 /* Spielzustand initialisieren */
 game_state_t physics_create_game(int width, int height)
@@ -91,6 +96,17 @@ static void reset_ball(game_state_t *game, int dir_down)
     game->ball.vy = dir_down ?  base_speed : -base_speed;
 }
 
+static void show_countdown(void)
+{
+    const char *txt[] = {"3","2","1"};
+    for (int i = 0; i < 3; ++i) {
+        mvprintw(LINES/2, COLS/2 - 1, txt[i]);
+        refresh();
+        nanosleep(&(struct timespec){0, 400*1000*1000}, NULL); /* 400 ms */
+    }
+    erase();   /* altes Zeichen Wegwischen */
+}
+
 /*  --------------------------------------------------------------
     physics_update_ball_simple  –  bewegt den Ball Schritt für Schritt
     und prüft nach jedem kleinen Schritt auf Kollisionen.
@@ -141,6 +157,9 @@ bool physics_update_ball(game_state_t *game)
             ball->x <= game->bot.x + game->bot.width)
         {
             reflect(ball);                                     /* Richtung + Speed */
+
+            bot_flash = 4;
+
             step_y = -fabsf(ball->vy) / (sub_steps - s);       /* neue Schrittgröße */
         }
 
@@ -152,6 +171,9 @@ bool physics_update_ball(game_state_t *game)
             ball->x <= game->player.x + game->player.width)
         {
             reflect(ball);
+
+            player_flash = 4;
+
             step_y = -fabsf(ball->vy) / (sub_steps - s);
         }
 
@@ -160,6 +182,7 @@ bool physics_update_ball(game_state_t *game)
         {
             game->score += 1;
             reset_ball(game, /*dir_down=*/1);
+            show_countdown();
             break;                                            /* Frame fertig       */
         }
         else if (ball->y > game->field_height)                /* unten raus -> Ende */

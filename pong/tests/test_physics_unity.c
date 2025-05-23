@@ -53,7 +53,7 @@ void test_physics_paddle_movement(void)
 
     /* Bewegung nach rechts prüfen */
     physics_player_move(&game, 1);
-    TEST_ASSERT_EQUAL_INT(initial_x + BOT_SCORE_SPEED_INCREMENT, game.player.x);
+    TEST_ASSERT_EQUAL_INT(initial_x + PLAYER_PADDLE_SPEED, game.player.x);
 
     /* Bewegung nach links prüfen */
     physics_player_move(&game, -1);
