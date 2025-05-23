@@ -1,26 +1,83 @@
-#include <ncurses.h>
+// Copyright 2025 Hochschule Hannover
+// Author: ChatGPT
+//
+// Entry point and main game loop for Console Pong
 
-int main(void)
+#include <ncurses.h>
+#include <stdbool.h>
+#include <stdlib.h>
+#include <time.h>
+
+#include "input.h"
+#include "ai.h"
+#include "physics.h"
+#include "render.h"
+#include "cleanup.h"      /* ←  DAS HIER MUSS DRIN STEHEN! */
+
+#define TICK_RATE_MS 100   /* statt 16 – ergibt ~20 FPS */
+
+
+static void sleep_ms(unsigned int ms)
 {
-    // Starte ncurses: Terminal für Zeichenausgabe vorbereiten und Bildschirm löschen
+    struct timespec ts;
+    ts.tv_sec = ms / 1000;
+    ts.tv_nsec = (ms % 1000) * 1000000;
+    nanosleep(&ts, NULL);
+}
+
+int main(int argc, char *argv[])
+{
+    (void)argc;
+    (void)argv;
+
     initscr();
-    // Verstecke den Cursor für bessere Übersicht
-    curs_set(0);
-    // Deaktiviere die Anzeige der Tastatureingaben
+    cbreak();
     noecho();
-    // Setze getch() in nicht-blockierenden Modus mit 16 ms Verzögerung (~60 FPS)
-    timeout(16);
-    // Zeichne einen Rahmen um das Spielfeld
-    box(stdscr, 0, 0);
-    // Gib eine Startnachricht in Zeile 1, Spalte 2 aus
-    mvprintw(1, 2, "Pong starting! Press any key to exit.");
-    // Aktualisiere den Bildschirm, damit alle Zeichnungen sichtbar werden
-    refresh();
-    // Stelle getch() auf blockierenden Modus, um auf einen Tastendruck zu warten
-    timeout(-1);
-    // Warte auf einen Tastendruck
+    keypad(stdscr, TRUE);
+    nodelay(stdscr, TRUE);
+    curs_set(0);
+
+    input_init();
+    render_init();
+
+    int max_y, max_x;
+    getmaxyx(stdscr, max_y, max_x);
+
+    game_state_t game = physics_create_game(max_x, max_y, DIFFICULTY_EASY);
+
+    bool running = true;
+    while (running)
+    {
+        /* Input */
+        input_action_t action = input_poll();
+        if (action.quit)
+        {
+            running = false;
+            break;
+        }
+        physics_player_move(&game, action.dx);
+
+        /* AI */
+        ai_update(&game);
+
+        /* Physics */
+        if (!physics_update_ball(&game))
+        {
+            running = false;
+        }
+
+        /* Render */
+        render_frame(&game);
+
+        sleep_ms(TICK_RATE_MS);
+    }
+
+    cleanup_ncurses();
+
+
+    mvprintw(game.field_height / 2, 2, "Game over – press any key");
+    nodelay(stdscr, FALSE);
     getch();
-    // Beende ncurses und stelle das Terminal wieder her
-    endwin();
-    return 0;
+
+    return EXIT_SUCCESS;
 }

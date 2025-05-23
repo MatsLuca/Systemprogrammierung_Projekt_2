@@ -1,30 +1,29 @@
-CC       = gcc
-CFLAGS   = -std=c11 -Wall -Isrc
-LDFLAGS  = -lncurses
+# --------------------------------------------------
+# Console Pong – Ordner-aware Makefile
+# --------------------------------------------------
 
-SRC      = src/main.c src/input.c src/ai.c src/render.c \
-           src/physics.c src/score.c src/cleanup.c
-OBJ      = $(SRC:.c=.o)
+CC      := gcc
+CFLAGS  := -Wall -Wextra -pedantic -std=c11
+LDFLAGS := -lncurses
 
-TEST_SRC = tests/test_physics.c tests/test_ai.c
-UNITY    = tests/unity/unity.c
-TEST_OBJ = $(TEST_SRC:.c=.o) $(UNITY:.c=.o)
+SRC_DIR := src
+OBJ_DIR := build
 
-.PHONY: compile test clean
+SRC := $(wildcard $(SRC_DIR)/*.c)
+OBJ := $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(SRC))
+BIN := pong
 
-compile: pong
+all: $(BIN)
 
-pong: $(OBJ)
-	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
+$(BIN): $(OBJ)
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
-test: test_runner
-	./test_runner
-
-test_runner: $(TEST_OBJ) src/physics.o src/ai.o
-	$(CC) $(CFLAGS) $^ -o $@
-
-%.o: %.c
+# Erzeuge build-Ordner bei Bedarf und baue jedes .c zu einem .o
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
+	@mkdir -p $(OBJ_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	rm -f pong test_runner $(OBJ) $(TEST_OBJ)
+	rm -rf $(OBJ_DIR) $(BIN)
+
+.PHONY: all clean
