@@ -18,15 +18,14 @@ void render_init(void)
 void render_frame(const game_state_t *game)
 {
     erase();
-    /* Draw paddles */
+
+    /* Score */
+    mvprintw(0, 2, "Score: %d   (q = quit)", game->score);
+
+    /* Paddles & Ball */
     draw_paddle(&game->player);
     draw_paddle(&game->bot);
-
-    /* Draw ball */
     mvaddch((int)game->ball.y, (int)game->ball.x, 'O');
-
-    /* Draw UI line */
-    mvprintw(0, 2, "Console Pong - q to quit");
 
     refresh();
 }

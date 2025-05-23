@@ -3,7 +3,8 @@
 
 void ai_update(game_state_t *game)
 {
-    int step = game->difficulty + 1; /* 1, 2 or 3 cells per frame */
+    int step = game->difficulty + 2 + game->score; /* Bot wird mit jedem Punkt schneller */
+    // Rest bleibt gleich
     if (game->ball.x < game->bot.x)
     {
         game->bot.x -= step;

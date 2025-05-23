@@ -33,6 +33,8 @@ typedef struct
     paddle_t player;
     paddle_t bot;
     ball_t ball;
+    int score;          /* Punkte des Spielers */
+
 } game_state_t;
 
 game_state_t physics_create_game(int width, int height, difficulty_t diff);

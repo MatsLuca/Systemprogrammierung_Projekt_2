@@ -72,12 +72,12 @@ int main(int argc, char *argv[])
         sleep_ms(TICK_RATE_MS);
     }
 
-    cleanup_ncurses();
-
-
-    mvprintw(game.field_height / 2, 2, "Game over – press any key");
     nodelay(stdscr, FALSE);
-    getch();
+    mvprintw(game.field_height / 2, 2, "Game over – press any key");
+    refresh();                /* wirklich auf den Schirm bringen */
+    getch();                  /* warten */
+
+    cleanup_ncurses();        /* jetzt sauber beenden */
 
     return EXIT_SUCCESS;
 }
