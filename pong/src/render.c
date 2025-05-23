@@ -1,4 +1,9 @@
-// Rendering using ncurses
+/* ------------------------------------------------------------------
+ * render.c - Darstellung mit ncurses
+ * Copyright 2025 Hochschule Hannover
+ * Autor: Mats-Luca Dagott, Aseer Al-Hommary
+ * ------------------------------------------------------------------ */
+
 #include <ncurses.h>
 #include "render.h"
 
@@ -12,17 +17,17 @@ static void draw_paddle(const paddle_t *paddle)
 
 void render_init(void)
 {
-    /* Colors not required */
+    /* Farben hier nicht benötigt */
 }
 
 void render_frame(const game_state_t *game)
 {
     erase();
 
-    /* Score */
+    /* Punktestand und Steuerung anzeigen */
     mvprintw(0, 2, "Score: %d   (q = quit)", game->score);
 
-    /* Paddles & Ball */
+    /* Spielobjekte zeichnen */
     draw_paddle(&game->player);
     draw_paddle(&game->bot);
     mvaddch((int)game->ball.y, (int)game->ball.x, 'O');

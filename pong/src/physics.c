@@ -1,29 +1,26 @@
 /* ------------------------------------------------------------------
- * physics.c – Ballbewegung und Kollisionen
- * ------------------------------------------------------------------
- *  Zwei Fixes:
- *    1. Kollisionen prüfen jetzt per Bereich (>= / <=) statt ==,
- *       damit der Ball auch bei >1 Zeile pro Frame zuverlässig
- *       das Paddle trifft.
- *    2. Bedingung auf Bewegungsrichtung (b->vy < 0 bzw. > 0),
- *       damit nur die relevante Seite reagiert.
+ * physics.c - Ballbewegung und Kollisions-Erkennung
+ * Copyright 2025 Hochschule Hannover
+ * Autor: Mats-Luca Dagott, Aseer Al-Hommary
  * ------------------------------------------------------------------ */
 
 #include <stdlib.h>
 #include <stdbool.h>
+#include <math.h>
 #include "physics.h"
-#include <math.h>        /* <- DAS HIER HINZUFÜGEN */
 
-
-/* Geschwindigkeitsfaktor je Schwierigkeitsgrad */
+/* Geschwindigkeits-Faktor nach Schwierigkeit */
 static float speed_factor(difficulty_t diff)
 {
     switch (diff)
     {
-    case DIFFICULTY_EASY:   return 1.05f;
-    case DIFFICULTY_MEDIUM: return 1.08f;
+    case DIFFICULTY_EASY:   
+        return SPEED_FACTOR_EASY;
+    case DIFFICULTY_MEDIUM: 
+        return SPEED_FACTOR_MEDIUM;
     case DIFFICULTY_HARD:
-    default:                return 1.12f;
+    default:                
+        return SPEED_FACTOR_HARD;
     }
 }
 
@@ -32,23 +29,33 @@ game_state_t physics_create_game(int width, int height, difficulty_t diff)
 {
     game_state_t game = {0};
 
+    /* Eingabeparameter prüfen */
+    if (width < MIN_TERMINAL_WIDTH || height < MIN_TERMINAL_HEIGHT)
+    {
+        /* Bei ungültigen Werten Mindestwerte verwenden */
+        width = MIN_TERMINAL_WIDTH;
+        height = MIN_TERMINAL_HEIGHT;
+    }
+
     game.field_width  = width;
     game.field_height = height;
     game.difficulty   = diff;
+    game.score = 0;
 
-    game.score = 0;       /* in physics_create_game() */
-
-    game.player.width = width / 6;
+    /* Spieler-Paddle initialisieren */
+    game.player.width = width / PADDLE_WIDTH_RATIO;
     game.player.x     = (width - game.player.width) / 2;
     game.player.y     = height - 2;
 
+    /* Bot-Paddle initialisieren */
     game.bot          = game.player;
     game.bot.y        = 1;
 
+    /* Ball initialisieren */
     game.ball.x  = width  / 2.0f;
     game.ball.y  = height / 2.0f;
-    game.ball.vx = 0.8f;      /* langsamer Start */
-    game.ball.vy = -0.8f;
+    game.ball.vx = BALL_START_SPEED;
+    game.ball.vy = -BALL_START_SPEED;
 
     return game;
 }
@@ -56,14 +63,20 @@ game_state_t physics_create_game(int width, int height, difficulty_t diff)
 /* Spieler-Paddle bewegen */
 void physics_player_move(game_state_t *game, int dx)
 {
-    game->player.x += dx * 2;          /* schnelleres Paddle */
+    game->player.x += dx * PADDLE_SPEED_MULTIPLIER;
+    
+    /* Paddle in Spielfeld halten */
     if (game->player.x < 0)
+    {
         game->player.x = 0;
+    }
     if (game->player.x + game->player.width >= game->field_width)
+    {
         game->player.x = game->field_width - game->player.width - 1;
+    }
 }
 
-/* Richtungsumkehr + Beschleunigung */
+/* Ball reflektieren und Geschwindigkeit erhöhen */
 static void reflect(ball_t *ball, float factor)
 {
     ball->vy = -ball->vy;
@@ -71,31 +84,36 @@ static void reflect(ball_t *ball, float factor)
     ball->vy *= factor;
 }
 
-/* Hilfsfunktion */
+/* Ball mit aktueller Geschwindigkeit zentrieren */
 static void reset_ball(game_state_t *game, int dir_down)
 {
-    float current_speed = sqrtf(game->ball.vx * game->ball.vx + game->ball.vy * game->ball.vy);
+    float current_speed = sqrtf(game->ball.vx * game->ball.vx + 
+                               game->ball.vy * game->ball.vy);
     
     game->ball.x  = game->field_width  / 2.0f;
     game->ball.y  = game->field_height / 2.0f;
-    game->ball.vx = (rand() % 2 ? current_speed * 0.7f : -current_speed * 0.7f);
-    game->ball.vy = dir_down ? current_speed * 0.7f : -current_speed * 0.7f;
+    game->ball.vx = (rand() % 2 ? current_speed * 0.7f : 
+                                 -current_speed * 0.7f);
+    game->ball.vy = dir_down ? current_speed * 0.7f : 
+                              -current_speed * 0.7f;
 }
 
-/* Haupt-Update der Ball-Physik; gibt false bei Game-Over zurück */
+/* Haupt-Update der Ball-Physik; false bei Spielende */
 bool physics_update_ball(game_state_t *game)
 {
     ball_t *b = &game->ball;
     
-    /* Position fortschreiben */
+    /* Ballposition aktualisieren */
     b->x += b->vx;
     b->y += b->vy;
     
-    /* Seitenwände */
+    /* Seitenwand-Kollisionen behandeln */
     if (b->x <= 0 || b->x >= game->field_width - 1)
+    {
         b->vx = -b->vx;
+    }
     
-    /* Paddle-Kollisionen */
+    /* Kollision mit Bot-Paddle (Ball nach oben) */
     if (b->vy < 0 &&
         b->y <= game->bot.y + 1 &&
         b->y >= game->bot.y &&
@@ -105,6 +123,7 @@ bool physics_update_ball(game_state_t *game)
         reflect(b, speed_factor(game->difficulty));
     }
     
+    /* Kollision mit Spieler-Paddle (Ball nach unten) */
     if (b->vy > 0 &&
         b->y >= game->player.y - 1 &&
         b->y <= game->player.y &&
@@ -114,13 +133,18 @@ bool physics_update_ball(game_state_t *game)
         reflect(b, speed_factor(game->difficulty));
     }
     
-    if (b->y < 0) {
+    /* Obere Grenze (Punkt für Spieler) */
+    if (b->y < 0) 
+    {
         game->score += 1;
         reset_ball(game, 1);
     }
-    else if (b->y > game->field_height) {
+    /* Untere Grenze (Spielende) */
+    else if (b->y > game->field_height) 
+    {
         return false;
     }
     
-    return true;  // <- DAS FEHLT!
+    return true;
 }
+

@@ -1,7 +1,24 @@
+/* ------------------------------------------------------------------
+ * physics.h - Header des Physik-Moduls
+ * Copyright 2025 Hochschule Hannover
+ * Autor: Mats-Luca Dagott, Aseer Al-Hommary
+ * ------------------------------------------------------------------ */
+
+
 #ifndef PHYSICS_H
 #define PHYSICS_H
 
-#include <stdbool.h>     /* <- NEU */
+#include <stdbool.h>
+
+/* Spielkonstanten */
+#define MIN_TERMINAL_WIDTH 20
+#define MIN_TERMINAL_HEIGHT 10
+#define PADDLE_WIDTH_RATIO 6
+#define BALL_START_SPEED 0.8f
+#define PADDLE_SPEED_MULTIPLIER 2
+#define SPEED_FACTOR_EASY 1.05f
+#define SPEED_FACTOR_MEDIUM 1.08f
+#define SPEED_FACTOR_HARD 1.12f
 
 typedef enum
 {
@@ -33,8 +50,7 @@ typedef struct
     paddle_t player;
     paddle_t bot;
     ball_t ball;
-    int score;          /* Punkte des Spielers */
-
+    int score;
 } game_state_t;
 
 game_state_t physics_create_game(int width, int height, difficulty_t diff);

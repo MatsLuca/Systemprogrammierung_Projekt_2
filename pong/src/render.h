@@ -1,3 +1,10 @@
+/* ------------------------------------------------------------------
+ * render.h - Header des Darstellungs-Moduls
+ * Copyright 2025 Hochschule Hannover
+ * Autor: Mats-Luca Dagott, Aseer Al-Hommary
+ * ------------------------------------------------------------------ */
+
+
 #ifndef RENDER_H
 #define RENDER_H
 

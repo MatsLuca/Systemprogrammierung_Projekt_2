@@ -1,0 +1,1 @@
+cat Makefile src/*.{c,h} tests/*.c | pbcopy

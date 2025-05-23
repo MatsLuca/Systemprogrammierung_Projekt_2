@@ -1,10 +1,17 @@
-// Bot logic adapting movement speed to difficulty level
+/* ------------------------------------------------------------------
+ * ai.c - Bot-Logik: Geschwindigkeit an Schwierigkeitsgrad anpassen
+ * Copyright 2025 Hochschule Hannover
+ * Autor: Mats-Luca Dagott, Aseer Al-Hommary
+ * ------------------------------------------------------------------ */
+
 #include "ai.h"
 
 void ai_update(game_state_t *game)
 {
-    int step = game->difficulty + 2 + game->score; /* Bot wird mit jedem Punkt schneller */
-    // Rest bleibt gleich
+    int base_speed = game->difficulty + BOT_BASE_SPEED;
+    int step = base_speed + game->score; /* Bot wird mit Punktestand schneller */
+    
+    /* Bot bewegt sich zum Ball */
     if (game->ball.x < game->bot.x)
     {
         game->bot.x -= step;
