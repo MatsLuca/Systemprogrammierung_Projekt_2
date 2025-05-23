@@ -8,8 +8,7 @@
 #define AI_H
 
 #include "physics.h"
-
-#define BOT_BASE_SPEED 2
+#include "config.h"
 
 void ai_update(game_state_t *game);
 

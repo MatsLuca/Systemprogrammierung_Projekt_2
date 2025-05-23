@@ -15,6 +15,7 @@
 #include "physics.h"
 #include "render.h"
 #include "cleanup.h"
+#include "config.h"
 
 #define TICK_RATE_MS 100    /* ~10 FPS für flüssiges Spiel */
 
@@ -55,7 +56,7 @@ int main(int argc, char *argv[])
     input_init();
     render_init();
 
-    game_state_t game = physics_create_game(max_x, max_y, DIFFICULTY_EASY);
+    game_state_t game = physics_create_game(max_x, max_y);
 
     /* Haupt-Spielschleife */
     bool running = true;

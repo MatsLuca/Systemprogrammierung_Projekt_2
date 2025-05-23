@@ -8,24 +8,11 @@
 #include <stdbool.h>
 #include <math.h>
 #include "physics.h"
+#include "config.h"
 
-/* Geschwindigkeits-Faktor nach Schwierigkeit */
-static float speed_factor(difficulty_t diff)
-{
-    switch (diff)
-    {
-    case DIFFICULTY_EASY:   
-        return SPEED_FACTOR_EASY;
-    case DIFFICULTY_MEDIUM: 
-        return SPEED_FACTOR_MEDIUM;
-    case DIFFICULTY_HARD:
-    default:                
-        return SPEED_FACTOR_HARD;
-    }
-}
 
 /* Spielzustand initialisieren */
-game_state_t physics_create_game(int width, int height, difficulty_t diff)
+game_state_t physics_create_game(int width, int height)
 {
     game_state_t game = {0};
 
@@ -39,7 +26,6 @@ game_state_t physics_create_game(int width, int height, difficulty_t diff)
 
     game.field_width  = width;
     game.field_height = height;
-    game.difficulty   = diff;
     game.score = 0;
 
     /* Spieler-Paddle initialisieren */
@@ -54,8 +40,8 @@ game_state_t physics_create_game(int width, int height, difficulty_t diff)
     /* Ball initialisieren */
     game.ball.x  = width  / 2.0f;
     game.ball.y  = height / 2.0f;
-    game.ball.vx = BALL_START_SPEED;
-    game.ball.vy = -BALL_START_SPEED;
+    game.ball.vx = BALL_INITIAL_SPEED;
+    game.ball.vy = -BALL_INITIAL_SPEED;
 
     return game;
 }
@@ -63,7 +49,7 @@ game_state_t physics_create_game(int width, int height, difficulty_t diff)
 /* Spieler-Paddle bewegen */
 void physics_player_move(game_state_t *game, int dx)
 {
-    game->player.x += dx * PADDLE_SPEED_MULTIPLIER;
+    game->player.x += dx * PLAYER_PADDLE_SPEED;
     
     /* Paddle in Spielfeld halten */
     if (game->player.x < 0)
@@ -77,74 +63,112 @@ void physics_player_move(game_state_t *game, int dx)
 }
 
 /* Ball reflektieren und Geschwindigkeit erhöhen */
-static void reflect(ball_t *ball, float factor)
+static void reflect(ball_t *ball)
 {
     ball->vy = -ball->vy;
-    ball->vx *= factor;
-    ball->vy *= factor;
+    ball->vx *= BALL_BOUNCE_MULTIPLIER;
+    ball->vy *= BALL_BOUNCE_MULTIPLIER;
 }
 
-/* Ball mit aktueller Geschwindigkeit zentrieren */
+/* Ball mit Standard Geschwindigkeit zentrieren */
 static void reset_ball(game_state_t *game, int dir_down)
 {
-    float current_speed = sqrtf(game->ball.vx * game->ball.vx + 
-                               game->ball.vy * game->ball.vy);
-    
-    game->ball.x  = game->field_width  / 2.0f;
-    game->ball.y  = game->field_height / 2.0f;
-    game->ball.vx = (rand() % 2 ? current_speed * 0.7f : 
-                                 -current_speed * 0.7f);
-    game->ball.vy = dir_down ? current_speed * 0.7f : 
-                              -current_speed * 0.7f;
+    /* 1. Ball zentrieren */
+    game->ball.x = game->field_width  / 2.0f;
+    game->ball.y = game->field_height / 2.0f;
+
+    /* 2. Basisgeschwindigkeit abhängig vom Score                */
+    float base_speed = BALL_INITIAL_SPEED *
+                       (1.0f + game->score * SPEED_PER_POINT);
+
+    /* Optional: Obergrenze, damit es nicht unspielbar wird       */
+    if (base_speed > BALL_MAX_SPEED) base_speed = BALL_MAX_SPEED;
+
+    /* 3. Zufällige horizontale Richtung                          */
+    game->ball.vx = (rand() & 1) ?  base_speed : -base_speed;
+
+    /* 4. Vertikale Richtung: nach unten (=+), sonst nach oben    */
+    game->ball.vy = dir_down ?  base_speed : -base_speed;
 }
 
-/* Haupt-Update der Ball-Physik; false bei Spielende */
+/*  --------------------------------------------------------------
+    physics_update_ball_simple  –  bewegt den Ball Schritt für Schritt
+    und prüft nach jedem kleinen Schritt auf Kollisionen.
+    → Gibt false zurück, wenn das Spiel vorbei ist (Ball unten raus).
+    -------------------------------------------------------------- */
 bool physics_update_ball(game_state_t *game)
 {
-    ball_t *b = &game->ball;
-    
-    /* Ballposition aktualisieren */
-    b->x += b->vx;
-    b->y += b->vy;
-    
-    /* Seitenwand-Kollisionen behandeln */
-    if (b->x <= 0 || b->x >= game->field_width - 1)
+    ball_t *ball = &game->ball;
+
+    /* ---------------------------------------------
+       1. Wie viele „Mini-Schritte“ brauchen wir?    
+          Wir teilen die Bewegung so auf, dass      
+          weder dx noch dy größer als 1 Zelle ist.  
+       --------------------------------------------- */
+    int sub_steps = (int)ceilf(
+        fmaxf(fabsf(ball->vx), fabsf(ball->vy))
+    );
+    if (sub_steps < 1) sub_steps = 1;   /* Sicherheitsnetz */
+
+    /* Schrittweite pro Sub-Step */
+    float step_x = ball->vx / sub_steps;
+    float step_y = ball->vy / sub_steps;
+
+    /* ---------------------------------------------
+       2. Sub-Steps nacheinander abarbeiten          
+       --------------------------------------------- */
+    for (int s = 0; s < sub_steps; ++s)
     {
-        b->vx = -b->vx;
+        ball->x += step_x;
+        ball->y += step_y;
+
+        /* -------- Seitenwände (links / rechts) ---- */
+        if (ball->x <= 0 || ball->x >= game->field_width - 1)
+        {
+            /* Ball horizontal umdrehen               */
+            ball->vx = -ball->vx;
+            step_x   = -step_x;                       /* Rest korrigieren */
+            /* Ball in Spielfeld halten               */
+            ball->x = fminf(fmaxf(ball->x, 0),
+                           game->field_width - 1);
+        }
+
+        /* -------- Bot-Paddle (oben) --------------- */
+        if (ball->vy < 0 &&                                    /* Ball geht nach oben  */
+            ball->y <= game->bot.y + 1 &&
+            ball->y >= game->bot.y &&
+            ball->x >= game->bot.x &&
+            ball->x <= game->bot.x + game->bot.width)
+        {
+            reflect(ball);                                     /* Richtung + Speed */
+            step_y = -fabsf(ball->vy) / (sub_steps - s);       /* neue Schrittgröße */
+        }
+
+        /* -------- Spieler-Paddle (unten) ---------- */
+        if (ball->vy > 0 &&                                    /* Ball geht nach unten */
+            ball->y >= game->player.y - 1 &&
+            ball->y <= game->player.y &&
+            ball->x >= game->player.x &&
+            ball->x <= game->player.x + game->player.width)
+        {
+            reflect(ball);
+            step_y = -fabsf(ball->vy) / (sub_steps - s);
+        }
+
+        /* -------- Punkte & Spielende -------------- */
+        if (ball->y < 0)                                      /* oben raus -> Punkt  */
+        {
+            game->score += 1;
+            reset_ball(game, /*dir_down=*/1);
+            break;                                            /* Frame fertig       */
+        }
+        else if (ball->y > game->field_height)                /* unten raus -> Ende */
+        {
+            return false;
+        }
     }
-    
-    /* Kollision mit Bot-Paddle (Ball nach oben) */
-    if (b->vy < 0 &&
-        b->y <= game->bot.y + 1 &&
-        b->y >= game->bot.y &&
-        b->x >= game->bot.x &&
-        b->x <= game->bot.x + game->bot.width)
-    {
-        reflect(b, speed_factor(game->difficulty));
-    }
-    
-    /* Kollision mit Spieler-Paddle (Ball nach unten) */
-    if (b->vy > 0 &&
-        b->y >= game->player.y - 1 &&
-        b->y <= game->player.y &&
-        b->x >= game->player.x &&
-        b->x <= game->player.x + game->player.width)
-    {
-        reflect(b, speed_factor(game->difficulty));
-    }
-    
-    /* Obere Grenze (Punkt für Spieler) */
-    if (b->y < 0) 
-    {
-        game->score += 1;
-        reset_ball(game, 1);
-    }
-    /* Untere Grenze (Spielende) */
-    else if (b->y > game->field_height) 
-    {
-        return false;
-    }
-    
-    return true;
+
+    return true;  /* Spiel läuft weiter */
 }
+
 

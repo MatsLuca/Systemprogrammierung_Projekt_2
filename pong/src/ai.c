@@ -5,11 +5,11 @@
  * ------------------------------------------------------------------ */
 
 #include "ai.h"
+#include "config.h"
 
 void ai_update(game_state_t *game)
 {
-    int base_speed = game->difficulty + BOT_BASE_SPEED;
-    int step = base_speed + game->score; /* Bot wird mit Punktestand schneller */
+    int step = BOT_INITIAL_SPEED + game->score * BOT_SCORE_SPEED_INCREMENT; /* Bot wird mit Punktestand schneller */
     
     /* Bot bewegt sich zum Ball */
     if (game->ball.x < game->bot.x)

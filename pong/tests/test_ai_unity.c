@@ -7,6 +7,7 @@
 #include "unity.h"
 #include "physics.h"
 #include "ai.h"
+#include "config.h"
 
 /* Diese Tests prüfen das Bewegungsverhalten der KI unter verschiedenen Bedingungen */
 
@@ -15,7 +16,7 @@ void tearDown(void) {}
 
 // Hilfsfunktion: Erstellt Spielzustand mit Ball- und Bot-Position
 static game_state_t make_game(float ball_x, float bot_x, int field_width) {
-    game_state_t game = physics_create_game(field_width, 24, DIFFICULTY_EASY);
+    game_state_t game = physics_create_game(field_width, 24);
     game.ball.x = ball_x;
     game.bot.x  = bot_x;
     game.field_width = field_width;
