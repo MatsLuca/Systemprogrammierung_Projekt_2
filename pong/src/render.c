@@ -6,6 +6,8 @@
 
 #include <ncurses.h>
 #include "render.h"
+#include <math.h>
+#include "config.h"   /* BOT_INITIAL_SPEED … */
 
 extern int player_flash;
 extern int bot_flash;
@@ -44,10 +46,10 @@ void render_frame(const game_state_t *g)
     mvhline(g->player.y + 1,            1,                 ACS_HLINE, g->field_width - 2);
     mvaddch(g->player.y + 1, g->field_width - 1,           ACS_LRCORNER);
 
-    /* linke und rechte Seiten */
-    int inner_height = g->player.y - g->bot.y;             /* Zeilen dazwischen */
-    mvvline(g->bot.y,                    0,                 ACS_VLINE, inner_height);
-    mvvline(g->bot.y, g->field_width - 1,                  ACS_VLINE, inner_height);
+     /* linke und rechte Seiten */
+    int inner_height = g->player.y - g->bot.y + 1;   /* +1: bis zur Bottom-Line */
+    mvvline(g->bot.y, 0,                                    ACS_VLINE, inner_height);   /* Zeilen dazwischen*/
+    mvvline(g->bot.y, g->field_width-1,                     ACS_VLINE, inner_height);
 
     attroff(A_DIM);
 
@@ -55,6 +57,23 @@ void render_frame(const game_state_t *g)
     attron(COLOR_PAIR(5) | A_BOLD);
     mvprintw(0, 2, "Score: %d   (q = quit)", g->score);
     attroff(COLOR_PAIR(5) | A_BOLD);
+
+    /* 2a. Bot- & Ball-Geschwindigkeit ------------------------------- */
+    int bot_step  = BOT_INITIAL_SPEED + g->score * BOT_SCORE_SPEED_INCREMENT;
+    float ball_sp = sqrtf(g->ball.vx * g->ball.vx + g->ball.vy * g->ball.vy);
+
+    /* Wir bauen die Zeile Stück für Stück, um die Werte einfärben zu können */
+    int col = g->field_width - 25;   /* rechter Rand wie gehabt */
+
+    mvprintw(0, col, "Bot:");
+    attron(COLOR_PAIR(6) | A_BOLD);
+    printw("%3d", bot_step);
+    attroff(COLOR_PAIR(6) | A_BOLD);
+
+    printw("  Ball:  ");
+    attron(COLOR_PAIR(7) | A_BOLD);
+    printw("%4.2f", ball_sp);
+    attroff(COLOR_PAIR(7) | A_BOLD);
 
     /* 3.  Spielobjekte --------------------------------------------- */
     draw_paddle(&g->player, 3, player_flash > 0);

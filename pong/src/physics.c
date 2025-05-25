@@ -45,7 +45,9 @@ game_state_t physics_create_game(int width, int height)
     /* Ball initialisieren */
     game.ball.x  = width  / 2.0f;
     game.ball.y  = height / 2.0f;
-    game.ball.vx = BALL_INITIAL_SPEED;
+    /* Ball horizontal zufällige Richtung */
+    game.ball.vx = (rand() & 1) ?  BALL_INITIAL_SPEED : -BALL_INITIAL_SPEED;
+
     game.ball.vy = -BALL_INITIAL_SPEED;
 
     return game;
@@ -80,8 +82,8 @@ static void reset_ball(game_state_t *game, int dir_down)
 {
     /* 1. Ball zentrieren */
     game->ball.x = game->field_width  / 2.0f;
-    game->ball.y = game->field_height / 2.0f;
-
+    game->ball.y = game->bot.y + 1;              /* direkt unter Bot  */
+    
     /* 2. Basisgeschwindigkeit abhängig vom Score                */
     float base_speed = BALL_INITIAL_SPEED *
                        (1.0f + game->score * SPEED_PER_POINT);

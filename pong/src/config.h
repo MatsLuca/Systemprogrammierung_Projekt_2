@@ -9,17 +9,17 @@
 
 // ----- Paddle-Geschwindigkeiten -----
 // Schrittweite des Spieler-Paddles pro Frame
-#define PLAYER_PADDLE_SPEED        5
+#define PLAYER_PADDLE_SPEED        6
 // Grundgeschwindigkeit des Bot-Paddles
-#define BOT_INITIAL_SPEED          2
+#define BOT_INITIAL_SPEED          1
 // Zusätzliche Bot-Geschwindigkeit pro Punkt (linear)
 #define BOT_SCORE_SPEED_INCREMENT  1
 
 // ----- Ball-Geschwindigkeiten -----
 // Startgeschwindigkeit des Balls
-#define BALL_INITIAL_SPEED         0.8f
-// Multiplikator bei jedem Abpraller (z.B. an Paddle oder Wand)
-#define BALL_BOUNCE_MULTIPLIER     1.05f
+#define BALL_INITIAL_SPEED         0.75f
+// Multiplikator bei jedem Abpraller
+#define BALL_BOUNCE_MULTIPLIER     1.03f
 /* Ab wie viel Prozent pro Punkt soll der Ball schneller werden? */
 #define SPEED_PER_POINT            0.15f    /* 15 % */
 /* Obergrenze Geschwindigkeit*/

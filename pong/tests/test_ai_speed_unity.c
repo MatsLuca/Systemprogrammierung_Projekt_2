@@ -19,7 +19,7 @@ void test_ai_step_includes_score(void) {
     game.bot.x = 0; game.bot.width = 10; game.score = 5;
     game.ball.x = 20;
     ai_update(&game);
-    int expected = (BOT_INITIAL_SPEED) + 5;
+    int expected = BOT_INITIAL_SPEED + 5 * BOT_SCORE_SPEED_INCREMENT;
     TEST_ASSERT_EQUAL_INT(expected, game.bot.x);
 }
 
@@ -33,14 +33,23 @@ void test_ai_difficulty_medium_speed(void) {
 }
 
 // Prüft die Schrittweite bei hartem Schwierigkeitsgrad und Randbegrenzung
-void test_ai_difficulty_hard_speed_and_boundary(void) {
-    game_state_t game = physics_create_game(50,10);
-    game.bot.x = 40; game.bot.width = 5; game.field_width = 50;
+void test_ai_difficulty_hard_speed_and_boundary(void)
+{
+    game_state_t game = physics_create_game(50, 10);
+    game.bot.x  = 40;
+    game.bot.width = 5;
+    game.field_width = 50;
     game.score = 2;
     game.ball.x = 49;
+
+    /* Erwartete neue Bot-Position berechnen */
+    int step   = BOT_INITIAL_SPEED + game.score * BOT_SCORE_SPEED_INCREMENT;
+    int max_x  = game.field_width - game.bot.width - 1;
+    int expect = game.bot.x + step;
+    if (expect > max_x) expect = max_x;
+
     ai_update(&game);
-    int max_x = game.field_width - game.bot.width - 1;
-    TEST_ASSERT_EQUAL_INT(max_x, game.bot.x);
+    TEST_ASSERT_EQUAL_INT(expect, game.bot.x);
 }
 
 

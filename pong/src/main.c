@@ -43,6 +43,8 @@ int main(int argc, char *argv[])
     (void)argc;
     (void)argv;
 
+    srand((unsigned)time(NULL));    /*  Zufalls-Seed */
+
     initscr();
     cbreak();
     noecho();
@@ -59,6 +61,8 @@ int main(int argc, char *argv[])
         init_pair(3, COLOR_YELLOW, -1);   /* Spieler-Paddle */
         init_pair(4, COLOR_MAGENTA,-1);   /* Bot-Paddle     */
         init_pair(5, COLOR_GREEN,  -1);   /* Score-Zeile    */
+        init_pair(6, COLOR_MAGENTA, -1);   /* Bot-Speed  */
+        init_pair(7, COLOR_CYAN,    -1);   /* Ball-Speed */
     }
 
     /* Terminalgröße prüfen */
