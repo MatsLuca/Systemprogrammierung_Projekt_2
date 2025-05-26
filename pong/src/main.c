@@ -2,6 +2,7 @@
  * main.c - Hauptprogramm und Spielschleife für Console Pong
  * Copyright 2025 Hochschule Hannover
  * Autor: Mats-Luca Dagott, Aseer Al-Hommary
+ * 
  * ------------------------------------------------------------------ */
 
 #include <ncurses.h>
