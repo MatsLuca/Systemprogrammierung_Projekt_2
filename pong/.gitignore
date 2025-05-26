@@ -1,0 +1,17 @@
+# Build-Verzeichnis und Binary
+/build/
+/pong
+*.o
+
+# Unity Test-Framework Artefakte
+/tests/unity/build/
+
+# Editor/IDE Settings
+.vscode/
+*.swp
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
