@@ -15,3 +15,6 @@
 
 # Windows
 Thumbs.db
+
+# temporäre oder überflüssige Dateien
+commands*
