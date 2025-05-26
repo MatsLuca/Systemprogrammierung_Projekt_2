@@ -24,7 +24,7 @@ static void draw_paddle(const paddle_t *p, int color, int flash)
     if (flash) attron(A_REVERSE);
     attron(COLOR_PAIR(color));
     for (int i = 0; i < p->width; ++i)
-        mvaddch(p->y, p->x + i, ACS_BLOCK);
+        mvaddch(p->y, (int)lroundf(p->x) + i, ACS_BLOCK);
     attroff(COLOR_PAIR(color));
     if (flash) attroff(A_REVERSE);
 }
@@ -58,19 +58,21 @@ void render_frame(const game_state_t *g)
     mvprintw(0, 2, "Score: %d   (q = quit)", g->score);
     attroff(COLOR_PAIR(5) | A_BOLD);
 
-    /* 2a. Bot- & Ball-Geschwindigkeit ------------------------------- */
-    int bot_step  = BOT_INITIAL_SPEED + g->score * BOT_SCORE_SPEED_INCREMENT;
+    /* 2a. Schwierigkeits‑Indikator ---------------------------------- */
+    float bot_acc = BOT_BASE_ACCELERATION +
+                    BOT_ACCEL_PER_POINT * g->score;      /* aktuelle Bot‑Beschleunigung */
+
     float ball_sp = sqrtf(g->ball.vx * g->ball.vx + g->ball.vy * g->ball.vy);
 
     /* Wir bauen die Zeile Stück für Stück, um die Werte einfärben zu können */
     int col = g->field_width - 25;   /* rechter Rand wie gehabt */
 
-    mvprintw(0, col, "Bot:");
+    mvprintw(0, col, "Bot a:");
     attron(COLOR_PAIR(6) | A_BOLD);
-    printw("%3d", bot_step);
+    printw("%4.2f", bot_acc);
     attroff(COLOR_PAIR(6) | A_BOLD);
 
-    printw("  Ball:  ");
+    printw("  Ball: ");
     attron(COLOR_PAIR(7) | A_BOLD);
     printw("%4.2f", ball_sp);
     attroff(COLOR_PAIR(7) | A_BOLD);
@@ -87,4 +89,3 @@ void render_frame(const game_state_t *g)
 
     refresh();
 }
-

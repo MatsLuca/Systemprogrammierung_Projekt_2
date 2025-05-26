@@ -8,12 +8,17 @@
 #define CONFIG_H
 
 // ----- Paddle-Geschwindigkeiten -----
-// Schrittweite des Spieler-Paddles pro Frame
-#define PLAYER_PADDLE_SPEED        6
-// Grundgeschwindigkeit des Bot-Paddles
-#define BOT_INITIAL_SPEED          1
-// Zusätzliche Bot-Geschwindigkeit pro Punkt (linear)
-#define BOT_SCORE_SPEED_INCREMENT  1
+/* -------------  NEUE, frame-basierte Beschleunigungs-Physik ------------- */
+#define PLAYER_ACCELERATION        0.70f   /* Zellen / Physik-Frame²   */
+#define PLAYER_MAX_SPEED           12.0f   /* Zellen / Physik-Frame    */
+
+#define BOT_BASE_ACCELERATION      0.20f
+#define BOT_ACCEL_PER_POINT        0.04f   /* +a pro Score-Punkt       */
+#define BOT_MAX_SPEED              10.0f
+
+/* --------- Allgemeine Paddle-Physik --------- */
+#define PADDLE_DAMPING          0.80f   /* 0.0 … 1.0  – wie stark vx pro Physik-Frame erhalten bleibt */
+#define PADDLE_STOP_EPS         0.05f   /* Schwelle, unter der vx sofort auf 0 gesetzt wird          */
 
 // ----- Ball-Geschwindigkeiten -----
 // Startgeschwindigkeit des Balls

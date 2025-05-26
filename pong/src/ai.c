@@ -6,26 +6,23 @@
 
 #include "ai.h"
 #include "config.h"
+#include <math.h>      /* fabsf */
 
-void ai_update(game_state_t *game)
+void ai_update(game_state_t *g)
 {
-    int step = BOT_INITIAL_SPEED + game->score * BOT_SCORE_SPEED_INCREMENT; /* Bot wird mit Punktestand schneller */
-    
-    /* Bot bewegt sich zum Ball */
-    if (game->ball.x < game->bot.x)
-    {
-        game->bot.x -= step;
-        if (game->bot.x < 0)
-        {
-            game->bot.x = 0;
-        }
-    }
-    else if (game->ball.x > game->bot.x + game->bot.width)
-    {
-        game->bot.x += step;
-        if (game->bot.x + game->bot.width >= game->field_width)
-        {
-            game->bot.x = game->field_width - game->bot.width - 1;
-        }
-    }
+    /* x-Koordinate der Ballmitte und des Bot-Mittelpunkts            */
+    float ball_mid = g->ball.x;
+    float bot_mid  = g->bot.x + g->bot.width / 2.0f;
+
+    float dir = 0.0f;
+    if (fabsf(ball_mid - bot_mid) > 0.5f)
+        dir = (ball_mid > bot_mid) ? +1.0f : -1.0f;
+
+    float accel = BOT_BASE_ACCELERATION +
+                  BOT_ACCEL_PER_POINT * g->score;
+
+    update_paddle(&g->bot, dir,
+                  accel,
+                  BOT_MAX_SPEED,
+                  g->field_width);
 }

@@ -45,19 +45,21 @@ void test_physics_paddle_creation(void)
     TEST_ASSERT_EQUAL_INT(1, game.bot.y);
 }
 
-// Prüft Bewegung des Spieler-Paddles
+
+// Prüft das neue Beschleunigungs-Update für das Spieler-Paddle
 void test_physics_paddle_movement(void)
 {
     game_state_t game = physics_create_game(80, 24);
-    int initial_x = game.player.x;
+    float initial_x = game.player.x;
 
-    /* Bewegung nach rechts prüfen */
-    physics_player_move(&game, 1);
-    TEST_ASSERT_EQUAL_INT(initial_x + PLAYER_PADDLE_SPEED, game.player.x);
+    /* Ein Update mit Rechts-Input */
+    physics_player_update(&game, 1);
 
-    /* Bewegung nach links prüfen */
-    physics_player_move(&game, -1);
-    TEST_ASSERT_EQUAL_INT(initial_x, game.player.x);
+    /* Geschwindigkeitszuwachs = PLAYER_ACCELERATION */
+    TEST_ASSERT_FLOAT_WITHIN(1e-6, PLAYER_ACCELERATION, game.player.vx);
+
+    /* Position erhöht sich um vx (== PLAYER_ACCELERATION) */
+    TEST_ASSERT_FLOAT_WITHIN(1e-6, initial_x + PLAYER_ACCELERATION, game.player.x);
 }
 
 // Prüft Behandlung der Spielfeld-Randbedingungen

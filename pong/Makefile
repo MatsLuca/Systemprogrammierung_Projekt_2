@@ -46,8 +46,8 @@ $(BUILDDIR):
 # ------------------------
 # Normale (assert-)Tests
 # ------------------------
-.PHONY: tests
-tests: $(TEST_BIN)
+\.PHONY: tests
+tests: unity-tests
 
 $(TESTDIR)/%: $(TESTDIR)/%.c $(MODULE_OBJ) | $(BUILDDIR)
 	$(CC) $(CFLAGS) -Isrc -I$(TESTDIR) $< $(MODULE_OBJ) -o $@
@@ -70,6 +70,6 @@ $(BUILDDIR)/%: $(TESTDIR)/%.c $(UNITY_SRC) $(MODULE_OBJ) | $(BUILDDIR)
 	      -o $@ $(LDFLAGS)
 
 # Aufräumen
-.PHONY: clean
+\.PHONY: clean
 clean:
-	rm -rf $(BUILDDIR) $(TARGET) $(TEST_BIN)
+	rm -rf $(BUILDDIR) $(TARGET)

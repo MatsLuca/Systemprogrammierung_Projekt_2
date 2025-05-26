@@ -11,16 +11,17 @@
 #include <stdio.h>
 #include <locale.h>
 
-#include "input.h"
-#include "ai.h"
-#include "physics.h"
-#include "render.h"
-#include "cleanup.h"
-#include "config.h"
+#include "input.h"   /* Modul für Tastatureingaben des Spielers */
+#include "ai.h"      /* Einfache KI zur Steuerung des Bot‑Schlägers */
+#include "physics.h" /* Kollisionsabfragen und Bewegungen von Ball und Schlägern */
+#include "render.h"  /* Zeichnet das Spielfeld und die Statusanzeige */
+#include "cleanup.h" /* Beendet ncurses sicher und räumt Ressourcen auf */
+#include "config.h"  /* Globale Spielkonstanten  */
 
-#define PHYSICS_DT_MS 100   /* Ball‑Physik nur alle 100 ms */
-#define RENDER_DT_MS   16   /* ~60 FPS für flüssiges Bild  */
+#define PHYSICS_DT_MS 100   /* Alle 100 ms berechnen wir die Ball‑Physik (≈ 10 FPS) */
+#define RENDER_DT_MS   16   /* Alle 16 ms zeichnen wir einen neuen Frame (≈ 60 FPS) */
 
+/* Pausiert das Programm für die angegebene Anzahl von Millisekunden */
 static void sleep_ms(unsigned int ms)
 {
     struct timespec ts;
@@ -29,7 +30,7 @@ static void sleep_ms(unsigned int ms)
     nanosleep(&ts, NULL);
 }
 
-/* Aktuelle Laufzeit in Millisekunden (monotonic clock) */
+/* Liefert die seit Programmstart vergangene Zeit in Millisekunden */
 static unsigned long ms_now(void)
 {
     struct timespec ts;
@@ -39,11 +40,11 @@ static unsigned long ms_now(void)
 
 int main(int argc, char *argv[])
 {
-    setlocale(LC_ALL, "");   /* Unicode aktivieren */
+    setlocale(LC_ALL, "");   /* Aktiviert Unicode‑Ausgabe im Terminal */
     (void)argc;
     (void)argv;
 
-    srand((unsigned)time(NULL));    /*  Zufalls-Seed */
+    srand((unsigned)time(NULL));    /* Initialisiert den Zufallszahl‑Generator */
 
     initscr();
     cbreak();
@@ -55,17 +56,17 @@ int main(int argc, char *argv[])
     /* Farben, falls Terminal das kann */
     if (has_colors()) {
         start_color();
-        use_default_colors();          /* –1 = Term-Hintergrund */
-        init_pair(1, COLOR_WHITE,  -1);   /* Standardtext   */
-        init_pair(2, COLOR_CYAN,   -1);   /* Ball           */
-        init_pair(3, COLOR_YELLOW, -1);   /* Spieler-Paddle */
-        init_pair(4, COLOR_MAGENTA,-1);   /* Bot-Paddle     */
-        init_pair(5, COLOR_GREEN,  -1);   /* Score-Zeile    */
-        init_pair(6, COLOR_MAGENTA, -1);   /* Bot-Speed  */
-        init_pair(7, COLOR_CYAN,    -1);   /* Ball-Speed */
+        use_default_colors();          /* -1 übernimmt jeweils die Hintergrundfarbe des Terminals */
+        init_pair(1, COLOR_WHITE,  -1);   /* Farbpaar 1: Weiß auf Standardhintergrund – allgemeiner Text */
+        init_pair(2, COLOR_CYAN,   -1);   /* Farbpaar 2: Cyan – Ball */
+        init_pair(3, COLOR_YELLOW, -1);   /* Farbpaar 3: Gelb – Spieler‑Schläger */
+        init_pair(4, COLOR_MAGENTA,-1);   /* Farbpaar 4: Magenta – KI‑Schläger */
+        init_pair(5, COLOR_GREEN,  -1);   /* Farbpaar 5: Grün – Punktestand‑Zeile */
+        init_pair(6, COLOR_MAGENTA, -1);   /* Farbpaar 6: Magenta – KI‑Geschwindigkeit */
+        init_pair(7, COLOR_CYAN,    -1);   /* Farbpaar 7: Cyan – Ball‑Geschwindigkeit */
     }
 
-    /* Terminalgröße prüfen */
+    /* Prüft, ob das Terminal groß genug ist */
     int max_y, max_x;
     getmaxyx(stdscr, max_y, max_x);
     
@@ -81,42 +82,42 @@ int main(int argc, char *argv[])
     input_init();
     render_init();
 
-    game_state_t game = physics_create_game(max_x, max_y);
-    unsigned long last_phys = ms_now();
+    game_state_t game = physics_create_game(max_x, max_y);   // Erstellt und initialisiert den kompletten Spielzustand
+    unsigned long last_phys = ms_now();                       // Zeitstempel des letzten Physik‑Updates
 
     /* Haupt-Spielschleife */
     bool running = true;
     while (running)
     {
         /* Eingabe verarbeiten */
-        input_action_t action = input_poll();
+        input_action_t action = input_poll();                  // Liest aktuelle Tastatureingaben
         if (action.quit) {
             break;
         }
-        physics_player_move(&game, action.dx);
+        physics_player_update(&game, action.dx);               // Bewegt das Spieler‑Paddle entsprechend der Eingabe
 
-        /* Physik & KI nur alle 100 ms -------------------------------- */
+        /* Physik und KI werden nur etwa 10‑mal pro Sekunde aktualisiert */
         unsigned long now = ms_now();
         if (now - last_phys >= PHYSICS_DT_MS) {
-            ai_update(&game);
-            if (!physics_update_ball(&game)) {
+            ai_update(&game);                                     // Berechnet die neue Position des Bot‑Paddles
+            if (!physics_update_ball(&game)) {                     // Aktualisiert Ballposition; false ⇒ Ball verfehlt -> Schleife beenden
                 break;
             }
             last_phys = now;
         }
 
-        /* Frame anzeigen (60 FPS) ------------------------------------ */
+        /* Zeichnet das aktuelle Spielfeld (ca. 60 Frames pro Sekunde) */
         render_frame(&game);
         sleep_ms(RENDER_DT_MS);
     }
 
-    /* Spielende anzeigen */
+    /* Spielende: wartet auf eine Taste, bevor das Programm beendet */
     nodelay(stdscr, FALSE);
     mvprintw(game.field_height / 2, 2, "Game over - press any key");
     refresh();
     getch();
 
-    cleanup_ncurses();
+    cleanup_ncurses();      // ncurses‑Modus verlassen und Terminalzustand wiederherstellen
 
     return EXIT_SUCCESS;
 }

@@ -16,11 +16,13 @@
 #define MIN_TERMINAL_HEIGHT 10
 #define PADDLE_WIDTH_RATIO 6
 
-typedef struct
-{
-    int x;
-    int y;
-    int width;
+typedef struct {
+    float x;            /* linke Oberkante (Fließkomma fürs Gleiten) */
+    int   y;            /* Zeile bleibt ganzzahlig                   */
+    int   width;
+
+    float vx;           /* aktuelle Geschwindigkeit                  */
+    float ax;           /* aktuelle Beschleunigung                   */
 } paddle_t;
 
 typedef struct
@@ -42,7 +44,12 @@ typedef struct
 } game_state_t;
 
 game_state_t physics_create_game(int width, int height);
-void physics_player_move(game_state_t *game, int dx);
 bool physics_update_ball(game_state_t *game);
+void physics_player_update(game_state_t *g, int input_dx);
+void update_paddle(paddle_t *p,
+                   float dir,
+                   float accel,
+                   float vmax,
+                   int field_w);
 
 #endif /* PHYSICS_H */
