@@ -1,7 +1,13 @@
 # alles als Text behandeln, automatische Normalisierung
-* text=auto
+* text=auto eol=lf
 
 # C-Quelldateien und Makefile immer mit LF speichern
 *.c     text eol=lf
 *.h     text eol=lf
 Makefile text eol=lf
+
+# Treat binary files unchanged
+*.png       binary
+*.jpg       binary
+*.gif       binary
+*.DS_Store  binary
