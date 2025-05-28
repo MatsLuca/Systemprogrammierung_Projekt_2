@@ -53,6 +53,8 @@ game_state_t physics_create_game(int width, int height)
 
     game.ball.vy = -BALL_INITIAL_SPEED;
 
+    game.paddle_hits = 0;
+    
     return game;
 }
 
@@ -67,11 +69,62 @@ void physics_player_update(game_state_t *g, int input_dx)
 }
 
 /* Ball an Paddle-Oberfläche reflektieren und nach jedem Treffer etwas beschleunigen */
-static void reflect(ball_t *ball)
+/* ---------------------------------------------------------------
+ *  Neue Reflexions-Routine mit Mindesttempo + Mindest-Steigung + progressives Tempo
+ * -------------------------------------------------------------- */
+static void reflect_paddle(ball_t *ball,
+                           const paddle_t *p,
+                           int hits_since_reset)
 {
-    ball->vy = -ball->vy;
-    ball->vx *= BALL_BOUNCE_MULTIPLIER;
-    ball->vy *= BALL_BOUNCE_MULTIPLIER;
+    /* 1. aktuelles Gesamt-Tempo                                   */
+    float speed = sqrtf(ball->vx * ball->vx + ball->vy * ball->vy);
+
+    /* 2. Offset (-1 … +1)                                          */
+    float mid     = p->x + p->width / 2.0f;
+    float offset  = (ball->x - mid) / (p->width / 2.0f);
+    if (offset < -1.f) offset = -1.f;
+    if (offset >  1.f) offset =  1.f;
+
+    /* 3. Basis-Richtung vor Spin                                   */
+    float new_vx  = speed * offset;
+    float new_vy  = -copysignf(speed, ball->vy) * (1.f - fabsf(offset));
+
+    /* 4. 30 % Paddle-vx als Spin                                   */
+    new_vx += p->vx * 0.30f;
+
+    /* 5. **Dynamischer** Bounce-Faktor                             */
+    float bounce = BALL_BOUNCE_MULTIPLIER +
+                   hits_since_reset * BALL_BOUNCE_INC;
+    ball->vx = new_vx * bounce;
+    ball->vy = new_vy * bounce;
+
+    /* 6. Geschwindigkeits-Grenzen                                  */
+    float mag = sqrtf(ball->vx * ball->vx + ball->vy * ball->vy);
+
+    /* max                                                           */
+    if (mag > BALL_MAX_SPEED) {
+        float s = BALL_MAX_SPEED / mag;
+        ball->vx *= s; ball->vy *= s; mag = BALL_MAX_SPEED;
+    }
+
+    /* **dynamisches Minimum**                                       */
+    float dyn_min = BALL_MIN_SPEED *
+                    (1.f + hits_since_reset * BALL_MIN_SPEED_INC);
+    if (dyn_min > BALL_MAX_SPEED) dyn_min = BALL_MAX_SPEED;
+
+    if (mag < dyn_min) {
+        float s = dyn_min / mag;
+        ball->vx *= s; ball->vy *= s; mag = dyn_min;
+    }
+
+    /* Mindest-Steigung                                              */
+    if (fabsf(ball->vy) < mag * BALL_MIN_VY_FRAC) {
+        float sign = copysignf(1.f, ball->vy);
+        float vy_t = mag * BALL_MIN_VY_FRAC;
+        float vx_t = sqrtf(fmaxf(mag*mag - vy_t*vy_t, 0.f));
+        ball->vy = sign * vy_t;
+        ball->vx = copysignf(vx_t, ball->vx);
+    }
 }
 
 /* update_paddle()  –  integrierte Beschleunigungsphysik für ein Paddle */
@@ -141,6 +194,9 @@ static void reset_ball(game_state_t *game, int dir_down)
 
     /* 4. Vertikale Richtung: nach unten (=+), sonst nach oben    */
     game->ball.vy = dir_down ?  base_speed : -base_speed;
+
+    /* 5. Bounce Zähler zurücksetzen */
+    game->paddle_hits = 0;
 }
 
 /* Zeigt einen kurzen 3‑2‑1‑Countdown in der Bildschirmmitte (je 400 ms) */
@@ -195,28 +251,32 @@ bool physics_update_ball(game_state_t *game)
                            game->field_width - 1);
         }
 
-        /* Bot‑Paddle (oben) */
-        if (ball->vy < 0 &&                                    /* Ball geht nach oben  */
+        /* Bot-Paddle (oben) */
+        if (ball->vy < 0 &&
             ball->y <= game->bot.y + 1 &&
             ball->y >= game->bot.y &&
             ball->x >= game->bot.x &&
             ball->x <= game->bot.x + game->bot.width)
         {
-            reflect(ball);                                     /* Richtung + Speed */
+            game->paddle_hits++;
+            reflect_paddle(ball, &game->bot,
+                   game->paddle_hits);
 
             bot_flash = 4;
 
-            step_y = -fabsf(ball->vy) / (sub_steps - s);       /* neue Schrittgröße */
+            step_y = -fabsf(ball->vy) / (sub_steps - s);
         }
 
-        /* Spieler‑Paddle (unten) */
-        if (ball->vy > 0 &&                                    /* Ball geht nach unten */
+        /* Spieler-Paddle (unten) */
+        if (ball->vy > 0 &&
             ball->y >= game->player.y - 1 &&
             ball->y <= game->player.y &&
             ball->x >= game->player.x &&
             ball->x <= game->player.x + game->player.width)
         {
-            reflect(ball);
+            game->paddle_hits++;
+            reflect_paddle(ball, &game->player,
+                   game->paddle_hits);
 
             player_flash = 4;
 

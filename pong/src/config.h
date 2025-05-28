@@ -21,13 +21,17 @@
 #define PADDLE_STOP_EPS         0.05f   /* Schwelle, unter der vx sofort auf 0 gesetzt wird          */
 
 // ----- Ball-Geschwindigkeiten -----
-// Startgeschwindigkeit des Balls
 #define BALL_INITIAL_SPEED         0.75f
-// Multiplikator bei jedem Abpraller
-#define BALL_BOUNCE_MULTIPLIER     1.03f
-/* Ab wie viel Prozent pro Punkt soll der Ball schneller werden? */
-#define SPEED_PER_POINT            0.15f    /* 15 % */
-/* Obergrenze Geschwindigkeit*/
+#define BALL_BOUNCE_MULTIPLIER     1.03f       /* Basis-Bounce-Factor     */
+#define SPEED_PER_POINT            0.15f
 #define BALL_MAX_SPEED             5.0f
+
+/* Mindesttempo + Steigungs-Limit                                      */
+#define BALL_MIN_SPEED             1.0f        /* Baseline-Tempo          */
+#define BALL_MIN_VY_FRAC           0.25f       /* ≥ 25 % Vertikalanteil   */
+
+/* *** NEU: Skalierungsfaktoren je Paddle-Hit ************************* */
+#define BALL_MIN_SPEED_INC         0.05f       /* +5 %  pro Hit           */
+#define BALL_BOUNCE_INC            0.002f      /* +0.2 % pro Hit          */
 
 #endif /* CONFIG_H */

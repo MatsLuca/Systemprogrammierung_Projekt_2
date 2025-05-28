@@ -39,8 +39,9 @@ typedef struct
     int field_height;
     paddle_t player;
     paddle_t bot;
-    ball_t ball;
+    ball_t   ball;
     int score;
+    int paddle_hits;
 } game_state_t;
 
 game_state_t physics_create_game(int width, int height);
