@@ -1,7 +1,7 @@
 /* ------------------------------------------------------------------
  * physics.h - Header des Physik-Moduls
  * Copyright 2025 Hochschule Hannover
- * Autor: Mats-Luca Dagott, Aseer Al-Hommary
+ * Autor: Mats-Luca Dagott
  * ------------------------------------------------------------------ */
 
 
@@ -16,7 +16,8 @@
 #define MIN_TERMINAL_HEIGHT 10
 #define PADDLE_WIDTH_RATIO 6
 
-typedef struct {
+typedef struct
+{
     float x;            /* linke Oberkante (Fließkomma fürs Gleiten) */
     int   y;            /* Zeile bleibt ganzzahlig                   */
     int   width;

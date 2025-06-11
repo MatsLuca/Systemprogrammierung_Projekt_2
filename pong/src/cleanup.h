@@ -1,7 +1,7 @@
 /* ------------------------------------------------------------------
  * cleanup.h - Header des Cleanup-Moduls
  * Copyright 2025 Hochschule Hannover
- * Autor: Mats-Luca Dagott, Aseer Al-Hommary
+ * Autor: Mats-Luca Dagott
  * ------------------------------------------------------------------ */
 
 

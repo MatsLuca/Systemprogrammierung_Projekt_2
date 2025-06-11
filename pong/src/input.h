@@ -1,7 +1,7 @@
 /* ------------------------------------------------------------------
  * input.h - Header für die Tastatureingabe
  * Copyright 2025 Hochschule Hannover
- * Autor: Mats-Luca Dagott, Aseer Al-Hommary
+ * Autor: Mats-Luca Dagott
  * ------------------------------------------------------------------ */
 
 #ifndef INPUT_H

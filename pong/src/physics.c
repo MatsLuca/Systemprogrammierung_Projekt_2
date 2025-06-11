@@ -1,7 +1,7 @@
 /* ------------------------------------------------------------------
  * physics.c - Ballbewegung und Kollisions-Erkennung
  * Copyright 2025 Hochschule Hannover
- * Autor: Mats-Luca Dagott, Aseer Al-Hommary
+ * Autor: Mats-Luca Dagott
  * ------------------------------------------------------------------ */
 
 #include <stdlib.h>   /* rand(), abs(), srand(), ... */
@@ -16,7 +16,17 @@
 int player_flash = 0;  /* Countdown für kurzes Aufblinken des Spieler‑Paddles */
 int bot_flash    = 0;  /* Countdown für kurzes Aufblinken des Bot‑Paddles    */
 
-/* Spielzustand initialisieren */
+/* ------------------------------------------------------------------
+ * physics_create_game
+ * Erzeugt einen initialisierten Spielzustand mit gültiger Feldgröße.
+ *
+ * Parameter:
+ *   width  – gewünschte Spielfeldbreite
+ *   height – gewünschte Spielfeldhöhe
+ *
+ * Rückgabe:
+ *   game_state_t mit allen Anfangswerten
+ * ------------------------------------------------------------------ */
 game_state_t physics_create_game(int width, int height)
 {
     game_state_t game = {0};
@@ -58,7 +68,18 @@ game_state_t physics_create_game(int width, int height)
     return game;
 }
 
-/* Spieler-Paddle bewegen */
+/* ------------------------------------------------------------------
+ * physics_player_update
+ * Aktualisiert Position und Geschwindigkeit des Spieler‑Paddles
+ * basierend auf der aktuellen Eingabe.
+ *
+ * Parameter:
+ *   g        – Zeiger auf Spielzustand
+ *   input_dx – Bewegungsrichtung (-1, 0, +1)
+ *
+ * Rückgabe:
+ *   keine
+ * ------------------------------------------------------------------ */
 void physics_player_update(game_state_t *g, int input_dx)
 {
     update_paddle(&g->player,
@@ -68,10 +89,19 @@ void physics_player_update(game_state_t *g, int input_dx)
                   g->field_width);
 }
 
-/* Ball an Paddle-Oberfläche reflektieren und nach jedem Treffer etwas beschleunigen */
-/* ---------------------------------------------------------------
- *  Neue Reflexions-Routine mit Mindesttempo + Mindest-Steigung + progressives Tempo
- * -------------------------------------------------------------- */
+/* ------------------------------------------------------------------
+ * reflect_paddle
+ * Berechnet die neue Ballrichtung und -geschwindigkeit nach einem
+ * Aufprall auf ein Paddle und wendet Spin, Bounce‑Faktor und Limits an.
+ *
+ * Parameter:
+ *   ball             – Zeiger auf den Ball
+ *   p                – getroffener Schläger
+ *   hits_since_reset – Anzahl Paddle‑Hits seit letztem Reset
+ *
+ * Rückgabe:
+ *   keine (Ball wird in-place geändert)
+ * ------------------------------------------------------------------ */
 static void reflect_paddle(ball_t *ball,
                            const paddle_t *p,
                            int hits_since_reset)
@@ -85,9 +115,14 @@ static void reflect_paddle(ball_t *ball,
     if (offset < -1.f) offset = -1.f;
     if (offset >  1.f) offset =  1.f;
 
-    /* 3. Basis-Richtung vor Spin                                   */
-    float new_vx  = speed * offset;
-    float new_vy  = -copysignf(speed, ball->vy) * (1.f - fabsf(offset));
+    /* 3. Richtung vor Spin  ----------------------------------------- */
+    float abs_off = fabsf(offset);      /* 0 … 1                       */
+
+    /* a)  Vektor mit **konstanter** Länge = speed                     */
+    float new_vx = speed * offset;
+    float new_vy = -copysignf(
+                    speed * sqrtf(1.0f - abs_off * abs_off),
+                    ball->vy);
 
     /* 4. 30 % Paddle-vx als Spin                                   */
     new_vx += p->vx * 0.30f;
@@ -95,10 +130,21 @@ static void reflect_paddle(ball_t *ball,
     /* 5. **Dynamischer** Bounce-Faktor                             */
     float bounce = BALL_BOUNCE_MULTIPLIER +
                    hits_since_reset * BALL_BOUNCE_INC;
-    ball->vx = new_vx * bounce;
-    ball->vy = new_vy * bounce;
 
-    /* 6. Geschwindigkeits-Grenzen                                  */
+    /* 5. Bounce auf die Richtung anwenden                          */
+    new_vx *= bounce;
+    new_vy *= bounce;
+
+    /* 6. Edge‑Drop jetzt – wirkt nur, wenn gewünscht               */
+    float edge_drop = 1.0f - BALL_EDGE_SLOWDOWN * abs_off;   /* center: 1.0 … edge: 1.0‑slowdown */
+    new_vx *= edge_drop;
+    new_vy *= edge_drop;
+
+    /* 7. Ergebnis in Ball schreiben                                */
+    ball->vx = new_vx;
+    ball->vy = new_vy;
+
+    /* 8. Geschwindigkeits-Grenzen                                  */
     float mag = sqrtf(ball->vx * ball->vx + ball->vy * ball->vy);
 
     /* max                                                           */
@@ -107,7 +153,7 @@ static void reflect_paddle(ball_t *ball,
         ball->vx *= s; ball->vy *= s; mag = BALL_MAX_SPEED;
     }
 
-    /* **dynamisches Minimum**                                       */
+    /* 9. **dynamisches Minimum**                                    */
     float dyn_min = BALL_MIN_SPEED *
                     (1.f + hits_since_reset * BALL_MIN_SPEED_INC);
     if (dyn_min > BALL_MAX_SPEED) dyn_min = BALL_MAX_SPEED;
@@ -117,7 +163,7 @@ static void reflect_paddle(ball_t *ball,
         ball->vx *= s; ball->vy *= s; mag = dyn_min;
     }
 
-    /* Mindest-Steigung                                              */
+    /* 10. Mindest-Steigung                                          */
     if (fabsf(ball->vy) < mag * BALL_MIN_VY_FRAC) {
         float sign = copysignf(1.f, ball->vy);
         float vy_t = mag * BALL_MIN_VY_FRAC;
@@ -127,7 +173,21 @@ static void reflect_paddle(ball_t *ball,
     }
 }
 
-/* update_paddle()  –  integrierte Beschleunigungsphysik für ein Paddle */
+/* ------------------------------------------------------------------
+ * update_paddle
+ * Integriert Beschleunigung, Dämpfung, Clamping und Position des
+ * angegebenen Paddles für einen Physik‑Frame.
+ *
+ * Parameter:
+ *   p       – Zeiger auf Paddle
+ *   dir     – gewünschte Richtung (-1, 0, +1)
+ *   accel   – Beschleunigung
+ *   v_max   – Maximalgeschwindigkeit
+ *   field_w – Spielfeldbreite
+ *
+ * Rückgabe:
+ *   keine
+ * ------------------------------------------------------------------ */
 void update_paddle(paddle_t *p,
                    float   dir,         /* -1, 0, +1            */
                    float   accel,       /* gewünschte a         */
@@ -176,6 +236,18 @@ void update_paddle(paddle_t *p,
     }
 }
 
+/* ------------------------------------------------------------------
+ * reset_ball
+ * Setzt den Ball nach einem Punkt an die Ausgangsposition und
+ * skaliert seine Startgeschwindigkeit anhand des aktuellen Scores.
+ *
+ * Parameter:
+ *   game     – Zeiger auf Spielzustand
+ *   dir_down – 1 = Ball startet nach unten, 0 = nach oben
+ *
+ * Rückgabe:
+ *   keine
+ * ------------------------------------------------------------------ */
 static void reset_ball(game_state_t *game, int dir_down)
 {
     /* 1. Ball zentrieren */
@@ -199,7 +271,17 @@ static void reset_ball(game_state_t *game, int dir_down)
     game->paddle_hits = 0;
 }
 
-/* Zeigt einen kurzen 3‑2‑1‑Countdown in der Bildschirmmitte (je 400 ms) */
+/* ------------------------------------------------------------------
+ * show_countdown
+ * Zeigt einen kurzen 3‑2‑1‑Countdown in der Bildschirmmitte und
+ * pausiert jeweils 400 ms zwischen den Zahlen.
+ *
+ * Parameter:
+ *   keine
+ *
+ * Rückgabe:
+ *   keine
+ * ------------------------------------------------------------------ */
 static void show_countdown(void)
 {
     const char *txt[] = {"3","2","1"};
@@ -211,9 +293,18 @@ static void show_countdown(void)
     erase();   /* altes Zeichen Wegwischen */
 }
 
-/* physics_update_ball() – bewegt den Ball schrittweise und prüft
- *                        nach jedem Mini‑Schritt auf Kollisionen.
- *                        false  → Ball ist unten herausgefallen */
+/* ------------------------------------------------------------------
+ * physics_update_ball
+ * Bewegt den Ball in kleinen Schritten, prüft Kollisionen mit Wänden
+ * und Paddles und behandelt Punkte sowie Spielende.
+ *
+ * Parameter:
+ *   game – Zeiger auf Spielzustand
+ *
+ * Rückgabe:
+ *   true  – Spiel läuft weiter
+ *   false – Ball ist unten herausgefallen (Game Over)
+ * ------------------------------------------------------------------ */
 bool physics_update_ball(game_state_t *game)
 {
     ball_t *ball = &game->ball;
@@ -264,7 +355,9 @@ bool physics_update_ball(game_state_t *game)
 
             bot_flash = 4;
 
-            step_y = -fabsf(ball->vy) / (sub_steps - s);
+            /* Schrittgrößen ab diesem Sub-Step neu kalibrieren */
+            step_x = ball->vx / (sub_steps - s);
+            step_y = ball->vy / (sub_steps - s);
         }
 
         /* Spieler-Paddle (unten) */
@@ -280,7 +373,9 @@ bool physics_update_ball(game_state_t *game)
 
             player_flash = 4;
 
-            step_y = -fabsf(ball->vy) / (sub_steps - s);
+            /* Schrittgrößen ab diesem Sub-Step neu kalibrieren */
+            step_x = ball->vx / (sub_steps - s);
+            step_y = ball->vy / (sub_steps - s);
         }
 
         /* Punkte & Spielende */

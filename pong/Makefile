@@ -1,6 +1,6 @@
 # Compiler und Flags
 CC         := gcc
-CFLAGS     := -Wall -Wextra -Wpedantic -std=c99 -Isrc
+CFLAGS     := -Wall -Wextra -Wpedantic -std=c99 -D_POSIX_C_SOURCE=200809L -Isrc
 LDFLAGS    := -lncurses
 
 # Verzeichnisse
@@ -46,7 +46,7 @@ $(BUILDDIR):
 # ------------------------
 # Normale (assert-)Tests
 # ------------------------
-\.PHONY: tests
+.PHONY: tests
 tests: unity-tests
 
 $(TESTDIR)/%: $(TESTDIR)/%.c $(MODULE_OBJ) | $(BUILDDIR)
@@ -70,6 +70,6 @@ $(BUILDDIR)/%: $(TESTDIR)/%.c $(UNITY_SRC) $(MODULE_OBJ) | $(BUILDDIR)
 	      -o $@ $(LDFLAGS)
 
 # Aufräumen
-\.PHONY: clean
+.PHONY: clean
 clean:
 	rm -rf $(BUILDDIR) $(TARGET)

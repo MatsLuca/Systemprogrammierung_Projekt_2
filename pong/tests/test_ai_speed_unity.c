@@ -1,7 +1,7 @@
 /* ------------------------------------------------------------------
  * test_ai_speed_unity.c - Unity‑Tests für die neue Bot‑Physik
  * Copyright 2025 Hochschule Hannover
- * Autor: Mats-Luca Dagott, Aseer Al-Hommary
+ * Autor: Mats-Luca Dagott
  * ------------------------------------------------------------------ */
 
 #include "unity.h"
@@ -15,6 +15,17 @@
 void setUp(void) {}
 void tearDown(void) {}
 
+/* ------------------------------------------------------------------
+ * make_game
+ * Erstellt einen vorkonfigurierten Spielzustand für die KI‑Speed‑Tests.
+ *
+ * Parameter:
+ *   width  – Spielfeldbreite
+ *   score  – aktueller Punktestand des Spielers
+ *
+ * Rückgabe:
+ *   game_state_t mit definierter Bot‑Startposition und Score
+ * ------------------------------------------------------------------ */
 /* Hilfsfunktion: erstellt Grundspielzustand */
 static game_state_t make_game(int width, int score)
 {

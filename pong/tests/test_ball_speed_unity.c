@@ -1,13 +1,25 @@
 /*  ----------------------------------------------------------------
  *  test_ball_speed_unity.c  –  Testet, ob der Ball nach einem Punkt
  *  mit korrekter Geschwindigkeit neu startet
+ *  Copyright 2025 Hochschule Hannover
+ *  Autor: Mats-Luca Dagott
  *  ---------------------------------------------------------------- */
 #include "unity.h"
 #include "physics.h"
 #include "config.h"
 
-/* Hilfsfunktion: einen Punkt erzwingen,
-   indem wir den Ball über das obere Spielfeld hinausschicken       */
+/* ------------------------------------------------------------------
+ * force_score
+ * Erzwingt einen Punkt für den Spieler, indem der Ball außerhalb der
+ * oberen Feldgrenze platziert wird. Dadurch löst physics_update_ball()
+ * intern einen Ball-Reset mit neuer Geschwindigkeit aus.
+ *
+ * Parameter:
+ *   g – Zeiger auf Spielzustand
+ *
+ * Rückgabe:
+ *   keine
+ * ------------------------------------------------------------------ */
 static void force_score(game_state_t *g)
 {
     /* Ball eine Zeile „oberhalb“ platzieren, nach oben fliegend    */

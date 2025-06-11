@@ -1,7 +1,7 @@
 /* ------------------------------------------------------------------
  * test_physics_unity.c - Unity-Tests für das Physik-Modul
  * Copyright 2025 Hochschule Hannover
- * Autor: Mats-Luca Dagott, Aseer Al-Hommary
+ * Autor: Mats-Luca Dagott
  * ------------------------------------------------------------------ */
 
 #include "unity.h"
@@ -11,13 +11,13 @@
 
 /* Diese Tests prüfen Grundfunktionen des Physik-Moduls */
 
-// Vorbereitung vor jedem Test
+/* Vorbereitung vor jedem Test */
 void setUp(void) {}
 
-// Aufräumen nach jedem Test
+/* Aufräumen nach jedem Test */
 void tearDown(void) {}
 
-// Prüft Initialisierung von Ball-Position und -Geschwindigkeit
+/* Prüft Initialisierung von Ball-Position und -Geschwindigkeit */
 void test_physics_ball_creation(void)
 {
     game_state_t game = physics_create_game(80, 24);
@@ -31,7 +31,7 @@ void test_physics_ball_creation(void)
     TEST_ASSERT_EQUAL_FLOAT(-BALL_INITIAL_SPEED, game.ball.vy);
 }
 
-// Prüft Initialisierung der Paddles
+/* Prüft Initialisierung der Paddles */
 void test_physics_paddle_creation(void)
 {
     game_state_t game = physics_create_game(80, 24);
@@ -46,7 +46,7 @@ void test_physics_paddle_creation(void)
 }
 
 
-// Prüft das neue Beschleunigungs-Update für das Spieler-Paddle
+/* Prüft das neue Beschleunigungs-Update für das Spieler-Paddle */
 void test_physics_paddle_movement(void)
 {
     game_state_t game = physics_create_game(80, 24);
@@ -62,7 +62,7 @@ void test_physics_paddle_movement(void)
     TEST_ASSERT_FLOAT_WITHIN(1e-6, initial_x + PLAYER_ACCELERATION, game.player.x);
 }
 
-// Prüft Behandlung der Spielfeld-Randbedingungen
+/* Prüft Behandlung der Spielfeld-Randbedingungen */
 void test_physics_boundary_conditions(void)
 {
     game_state_t game = physics_create_game(20, 10);
@@ -83,4 +83,3 @@ int main(void)
 
     return UNITY_END();
 }
-

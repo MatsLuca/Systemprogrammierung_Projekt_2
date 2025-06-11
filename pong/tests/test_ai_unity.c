@@ -1,7 +1,7 @@
 /* ------------------------------------------------------------------
  * test_ai_unity.c - Unity-Tests für das KI-Modul
  * Copyright 2025 Hochschule Hannover
- * Autor: Mats-Luca Dagott, Aseer Al-Hommary
+ * Autor: Mats-Luca Dagott
  * ------------------------------------------------------------------ */
 
 #include "unity.h"
@@ -14,7 +14,18 @@
 void setUp(void) {}
 void tearDown(void) {}
 
-// Hilfsfunktion: Erstellt Spielzustand mit Ball- und Bot-Position
+/* ------------------------------------------------------------------
+ * make_game
+ * Erstellt einen Spielzustand mit definierter Ball- und Bot-Position.
+ *
+ * Parameter:
+ *   ball_x      – X‑Position des Balls
+ *   bot_x       – Start‑X‑Position des Bot‑Paddles
+ *   field_width – Spielfeldbreite
+ *
+ * Rückgabe:
+ *   game_state_t mit vorkonfigurierten Werten
+ * ------------------------------------------------------------------ */
 static game_state_t make_game(float ball_x, float bot_x, int field_width) {
     game_state_t game = physics_create_game(field_width, 24);
     game.ball.x = ball_x;
@@ -23,28 +34,28 @@ static game_state_t make_game(float ball_x, float bot_x, int field_width) {
     return game;
 }
 
-// Prüft, ob der Bot sich nach rechts bewegt, wenn der Ball rechts ist
+/* Prüft, ob der Bot sich nach rechts bewegt, wenn der Ball rechts ist */
 void test_ai_moves_bot_right_when_ball_is_right(void) {
     game_state_t game = make_game(50.0f, 10, 100);
     ai_update(&game);
     TEST_ASSERT_TRUE(game.bot.x > 10);
 }
 
-// Prüft, ob der Bot sich nach links bewegt, wenn der Ball links ist
+/* Prüft, ob der Bot sich nach links bewegt, wenn der Ball links ist */
 void test_ai_moves_bot_left_when_ball_is_left(void) {
     game_state_t game = make_game(10.0f, 50, 100);
     ai_update(&game);
     TEST_ASSERT_TRUE(game.bot.x < 50);
 }
 
-// Prüft, dass der Bot am linken Spielfeldrand bleibt
+/* Prüft, dass der Bot am linken Spielfeldrand bleibt */
 void test_ai_not_beyond_left_boundary(void) {
     game_state_t game = make_game(0.0f, 0, 100);
     ai_update(&game);
     TEST_ASSERT_EQUAL_INT(0, game.bot.x);
 }
 
-// Prüft, dass der Bot am rechten Spielfeldrand bleibt
+/* Prüft, dass der Bot am rechten Spielfeldrand bleibt */
 void test_ai_not_beyond_right_boundary(void) {
     int width = 100;
     game_state_t game = make_game(width - 1, width - (width / PADDLE_WIDTH_RATIO) - 1, width);

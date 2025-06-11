@@ -1,7 +1,7 @@
 /* ------------------------------------------------------------------
  * ai.h - KI-Modul-Header
  * Copyright 2025 Hochschule Hannover
- * Autor: Mats-Luca Dagott, Aseer Al-Hommary
+ * Autor: Mats-Luca Dagott
  * ------------------------------------------------------------------ */
 
 #ifndef AI_H

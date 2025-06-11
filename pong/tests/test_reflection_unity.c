@@ -1,5 +1,7 @@
 /* ------------------------------------------------------------------
  *  test_reflection_unity.c – Tests für Offset-Reflexion & Spin
+ * Copyright 2025 Hochschule Hannover
+ * Autor: Mats-Luca Dagott
  * ------------------------------------------------------------------ */
 #include "unity.h"
 #include "physics.h"
@@ -9,7 +11,20 @@
 void setUp(void)  {}
 void tearDown(void) {}
 
-/* Hilfs-Setup: Ball genau auf Höhe des Spieler-Paddles platzieren */
+/* ------------------------------------------------------------------
+ * place_ball
+ * Platziert den Ball oberhalb des Spieler-Paddles, sodass im nächsten
+ * Physik‑Frame eine definierte Kollision entsteht. Optional wird eine
+ * Paddle-Geschwindigkeit gesetzt, um Spin-Tests zu ermöglichen.
+ *
+ * Parameter:
+ *   g         – Zeiger auf Spielzustand
+ *   rel_x     – relative Position (-1 … +1) auf dem Paddle
+ *   paddle_vx – gewünschte Paddle-Geschwindigkeit
+ *
+ * Rückgabe:
+ *   keine
+ * ------------------------------------------------------------------ */
 static void place_ball(game_state_t *g, float rel_x, float paddle_vx)
 {
     /* rel_x:  −1 = ganz links auf dem Paddle,  +1 = ganz rechts   */

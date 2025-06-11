@@ -1,6 +1,8 @@
 /* ------------------------------------------------------------------
  *  test_speed_progress_unity.c
  *  Prüft die progressive Temposteigerung nach Paddle-Hits
+ *  Copyright 2025 Hochschule Hannover
+ *  Autor: Mats-Luca Dagott
  * ------------------------------------------------------------------ */
 #include "unity.h"
 #include "physics.h"
@@ -11,10 +13,19 @@
 void setUp(void)  {}
 void tearDown(void) {}
 
+/* ------------------------------------------------------------------
+ * simulate_player_hit
+ * Platziert den Ball oberhalb des Spieler-Paddles, sodass im
+ * anschließenden Physik-Frame garantiert eine Kollision auftritt.
+ *
+ * Parameter:
+ *   g – Zeiger auf Spielzustand
+ *
+ * Rückgabe:
+ *   keine
+ * ------------------------------------------------------------------ */
 static void simulate_player_hit(game_state_t *g)
 {
-    /* Ball exakt oberhalb des Spieler-Paddles platzieren,
-       sodass physics_update_ball() garantiert kollidiert.         */
     g->ball.x  = g->player.x + g->player.width / 2.0f;
     g->ball.y  = g->player.y - 1;
     g->ball.vx = 0.0f;

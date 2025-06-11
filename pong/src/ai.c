@@ -1,13 +1,24 @@
 /* ------------------------------------------------------------------
  * ai.c - Bot-Logik: Geschwindigkeit an Schwierigkeitsgrad anpassen
  * Copyright 2025 Hochschule Hannover
- * Autor: Mats-Luca Dagott, Aseer Al-Hommary
+* Autor: Mats-Luca Dagott
  * ------------------------------------------------------------------ */
 
 #include "ai.h"
 #include "config.h"
-#include <math.h>      /* fabsf */
+#include <math.h>     
 
+/* ------------------------------------------------------------------
+ * ai_update
+ * Aktualisiert die Position und Beschleunigung des Bot‑Paddles,
+ * damit es dem Ball folgt.
+ *
+ * Parameter:
+ *   g – Zeiger auf den aktuellen Spielzustand.
+ *
+ * Rückgabe:
+ *   keine (Spielzustand wird in‑place modifiziert)
+ * ------------------------------------------------------------------ */
 void ai_update(game_state_t *g)
 {
     /* x-Koordinate der Ballmitte und des Bot-Mittelpunkts            */

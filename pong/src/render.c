@@ -1,7 +1,7 @@
 /* ------------------------------------------------------------------
  * render.c - Darstellung mit ncurses
  * Copyright 2025 Hochschule Hannover
- * Autor: Mats-Luca Dagott, Aseer Al-Hommary
+ * Autor: Mats-Luca Dagott
  * ------------------------------------------------------------------ */
 
 #include <ncurses.h>
@@ -12,11 +12,39 @@
 extern int player_flash;
 extern int bot_flash;
 
+/* ------------------------------------------------------------------
+ * render_init
+ * Führt initiale Einstellungen für das Render‑Modul aus.
+ * Derzeit keine Operationen erforderlich, Platzhalter für mögliche
+ * Erweiterungen.
+ *
+ * Parameter:
+ *   keine
+ *
+ * Rückgabe:
+ *   keine
+ * ------------------------------------------------------------------ */
+
 /* Aktuell keine zusätzliche Initialisierung nötig, Farben werden in main gesetzt */
 void render_init(void)
 {
     /* leer */
 }
+
+/* ------------------------------------------------------------------
+ * draw_paddle
+ * Zeichnet ein Paddle als zusammenhängende Blockreihe auf dem
+ * Bildschirm. Bei aktiviertem Flash‑Flag wird das Paddle invertiert
+ * dargestellt, um einen Treffer optisch hervorzuheben.
+ *
+ * Parameter:
+ *   p     – Zeiger auf Paddle‑Struktur
+ *   color – ncurses-Farbpaar-ID
+ *   flash – 0 = normal, != 0 = invertiert
+ *
+ * Rückgabe:
+ *   keine
+ * ------------------------------------------------------------------ */
 
 /* Fette, einfarbige Schläger */
 static void draw_paddle(const paddle_t *p, int color, int flash)
@@ -28,6 +56,19 @@ static void draw_paddle(const paddle_t *p, int color, int flash)
     attroff(COLOR_PAIR(color));
     if (flash) attroff(A_REVERSE);
 }
+
+/* ------------------------------------------------------------------
+ * render_frame
+ * Zeichnet einen kompletten Frame: Spielfeldrahmen, Score‑Zeile,
+ * Schwierigkeitsindikatoren, Paddles und Ball. Aktualisiert zudem die
+ * Flash‑Effekte für getroffene Paddles.
+ *
+ * Parameter:
+ *   g – Zeiger auf aktuellen Spielzustand
+ *
+ * Rückgabe:
+ *   keine
+ * ------------------------------------------------------------------ */
 
 void render_frame(const game_state_t *g)
 {

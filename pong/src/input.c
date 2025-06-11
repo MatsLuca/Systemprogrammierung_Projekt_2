@@ -1,18 +1,42 @@
 /* ------------------------------------------------------------------
  * input.c - Nicht-blockierende Tastatureingabe mit ncurses
  * Copyright 2025 Hochschule Hannover
- * Autor: Mats-Luca Dagott, Aseer Al-Hommary
+ * Autor: Mats-Luca Dagott
  * ------------------------------------------------------------------ */
+
 
 #include <ncurses.h>
 #include "input.h"
 #include "config.h"
 
+/* ------------------------------------------------------------------
+ * input_init
+ * Initialisiert das Eingabemodul. Momentan sind keine zusätzlichen
+ * Schritte nötig, der Platzhalter ermöglicht jedoch spätere Erweiterung.
+ *
+ * Parameter:
+ *   keine
+ *
+ * Rückgabe:
+ *   keine
+ * ------------------------------------------------------------------ */
 void input_init(void)
 {
     /* Bislang keine zusätzliche Initialisierung nötig */
 }
 
+/* ------------------------------------------------------------------
+ * input_poll
+ * Liest nicht-blockierend eine Taste aus dem Terminal und übersetzt
+ * sie in eine Input‑Aktion für das Spiel.
+ *
+ * Parameter:
+ *   keine
+ *
+ * Rückgabe:
+ *   input_action_t – Struktur mit dx-Bewegung (-1/0/+1) und
+ *                   Quit-Flag (1 = Spiel beenden).
+ * ------------------------------------------------------------------ */
 input_action_t input_poll(void)
 {
     input_action_t action = {0, 0};
