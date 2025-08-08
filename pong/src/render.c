@@ -5,12 +5,14 @@
  * ------------------------------------------------------------------ */
 
 #include <ncurses.h>
+#include <time.h>
 #include "render.h"
 #include <math.h>
 #include "config.h"   /* BOT_INITIAL_SPEED … */
 
-extern int player_flash;
-extern int bot_flash;
+/* Flash-Countdowns in der UI statt in der Physik */
+static int player_flash = 0;
+static int bot_flash    = 0;
 
 /* ------------------------------------------------------------------
  * render_init
@@ -30,6 +32,18 @@ void render_init(void)
 {
     /* leer */
 }
+void render_countdown(void)
+{
+    const char *txt[] = {"3","2","1"};
+    for (int i = 0; i < COUNTDOWN_STEPS; ++i) {
+        mvprintw(LINES/2, COLS/2 - 1, "%s", txt[i % 3]);
+        refresh();
+        struct timespec ts = { COUNTDOWN_DELAY_MS / 1000, (COUNTDOWN_DELAY_MS % 1000) * 1000 * 1000 };
+        nanosleep(&ts, NULL);
+    }
+    erase();
+}
+
 
 /* ------------------------------------------------------------------
  * draw_paddle
@@ -70,7 +84,7 @@ static void draw_paddle(const paddle_t *p, int color, int flash)
  *   keine
  * ------------------------------------------------------------------ */
 
-void render_frame(const game_state_t *g)
+void render_frame(const game_state_t *g, physics_event_t events)
 {
     erase();
 
@@ -119,6 +133,10 @@ void render_frame(const game_state_t *g)
     attroff(COLOR_PAIR(7) | A_BOLD);
 
     /* 3.  Spielobjekte --------------------------------------------- */
+    /* Event-abhängige Flash-Impulse */
+    if (events & PHYS_EVENT_HIT_PLAYER) player_flash = FLASH_FRAMES;
+    if (events & PHYS_EVENT_HIT_BOT)    bot_flash    = FLASH_FRAMES;
+
     draw_paddle(&g->player, 3, player_flash > 0);
     draw_paddle(&g->bot,    4, bot_flash    > 0);
     if (player_flash > 0) player_flash--;

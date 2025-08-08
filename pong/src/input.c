@@ -7,7 +7,6 @@
 
 #include <ncurses.h>
 #include "input.h"
-#include "config.h"
 
 /* ------------------------------------------------------------------
  * input_init

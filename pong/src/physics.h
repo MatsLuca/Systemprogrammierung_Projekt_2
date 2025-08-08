@@ -11,10 +11,7 @@
 #include <stdbool.h>
 #include "config.h"
 
-/* Spielkonstanten */
-#define MIN_TERMINAL_WIDTH 20
-#define MIN_TERMINAL_HEIGHT 10
-#define PADDLE_WIDTH_RATIO 6
+/* Spielkonstanten wanderten nach config.h */
 
 typedef struct
 {
@@ -45,8 +42,27 @@ typedef struct
     int paddle_hits;
 } game_state_t;
 
+/* ---------------------------------------------------------------
+ * Ereignisse aus dem Physik-Update, um UI zu entkoppeln
+ * Bitmaske erlaubt Mehrfachereignisse pro Frame
+ * --------------------------------------------------------------- */
+typedef enum {
+    PHYS_EVENT_NONE          = 0,
+    PHYS_EVENT_HIT_PLAYER    = 1 << 0,
+    PHYS_EVENT_HIT_BOT       = 1 << 1,
+    PHYS_EVENT_SCORED        = 1 << 2,
+    PHYS_EVENT_GAME_OVER     = 1 << 3,
+} physics_event_t;
+
+/* RNG-Injektion für testbare/konfigurierbare Zufallswerte */
+void physics_seed(unsigned int seed);
+void physics_set_random_provider(unsigned int (*rand_func)(void));
+
 game_state_t physics_create_game(int width, int height);
+/* Rückwärtskompatibel: true=weiter, false=Game Over */
 bool physics_update_ball(game_state_t *game);
+/* Neue API: liefert Event-Bitmaske dieses Updates */
+physics_event_t physics_update_ball_events(game_state_t *game);
 void physics_player_update(game_state_t *g, int input_dx);
 void update_paddle(paddle_t *p,
                    float dir,

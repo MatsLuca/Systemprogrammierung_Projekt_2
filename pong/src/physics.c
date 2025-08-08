@@ -7,14 +7,21 @@
 #include <stdlib.h>   /* rand(), abs(), srand(), ... */
 #include <stdbool.h>  /* bool‑Typ und true/false Konstanten */
 #include <math.h>     /* fabsf(), ceilf(), fmaxf(), ... */
-#include <ncurses.h>  /* Terminalgrafik, Tastatur und Farben */
-#include <time.h>     /* nanosleep(), struct timespec */
+#include <time.h>     /* struct timespec */
 #include "physics.h"  /* Datentypen & Prototypen dieses Moduls */
 #include "config.h"   /* Gemeinsame Spielkonstanten */
 
-/* Flag für Flash-Effekt */
-int player_flash = 0;  /* Countdown für kurzes Aufblinken des Spieler‑Paddles */
-int bot_flash    = 0;  /* Countdown für kurzes Aufblinken des Bot‑Paddles    */
+/* Keine UI-Zustände/Globals mehr hier – reine Physik */
+
+/* RNG-Provider (injizierbar für Tests/Konfiguration) */
+static unsigned int physics_rand_default(void) { return (unsigned int)rand(); }
+static unsigned int (*physics_rand)(void) = physics_rand_default;
+
+void physics_seed(unsigned int seed) { srand(seed); }
+void physics_set_random_provider(unsigned int (*rand_func)(void))
+{
+    physics_rand = rand_func ? rand_func : physics_rand_default;
+}
 
 /* ------------------------------------------------------------------
  * physics_create_game
@@ -59,7 +66,7 @@ game_state_t physics_create_game(int width, int height)
     game.ball.x  = width  / 2.0f;
     game.ball.y  = height / 2.0f;
     /* Ball horizontal zufällige Richtung */
-    game.ball.vx = (rand() & 1) ?  BALL_INITIAL_SPEED : -BALL_INITIAL_SPEED;
+    game.ball.vx = (physics_rand() & 1u) ?  BALL_INITIAL_SPEED : -BALL_INITIAL_SPEED;
 
     game.ball.vy = -BALL_INITIAL_SPEED;
 
@@ -262,7 +269,7 @@ static void reset_ball(game_state_t *game, int dir_down)
     if (base_speed > BALL_MAX_SPEED) base_speed = BALL_MAX_SPEED;
 
     /* 3. Zufällige horizontale Richtung                          */
-    game->ball.vx = (rand() & 1) ?  base_speed : -base_speed;
+    game->ball.vx = (physics_rand() & 1u) ?  base_speed : -base_speed;
 
     /* 4. Vertikale Richtung: nach unten (=+), sonst nach oben    */
     game->ball.vy = dir_down ?  base_speed : -base_speed;
@@ -282,16 +289,7 @@ static void reset_ball(game_state_t *game, int dir_down)
  * Rückgabe:
  *   keine
  * ------------------------------------------------------------------ */
-static void show_countdown(void)
-{
-    const char *txt[] = {"3","2","1"};
-    for (int i = 0; i < 3; ++i) {
-        mvprintw(LINES/2, COLS/2 - 1, txt[i]);
-        refresh();
-        nanosleep(&(struct timespec){0, 400*1000*1000}, NULL); /* 400 ms */
-    }
-    erase();   /* altes Zeichen Wegwischen */
-}
+/* Countdown wird in der UI realisiert – Physik emittiert nur SCORED-Event */
 
 /* ------------------------------------------------------------------
  * physics_update_ball
@@ -305,9 +303,10 @@ static void show_countdown(void)
  *   true  – Spiel läuft weiter
  *   false – Ball ist unten herausgefallen (Game Over)
  * ------------------------------------------------------------------ */
-bool physics_update_ball(game_state_t *game)
+physics_event_t physics_update_ball_events(game_state_t *game)
 {
     ball_t *ball = &game->ball;
+    physics_event_t events = PHYS_EVENT_NONE;
 
     /*
      * Schritt 1: Anzahl der Mini‑Schritte bestimmen  
@@ -352,8 +351,7 @@ bool physics_update_ball(game_state_t *game)
             game->paddle_hits++;
             reflect_paddle(ball, &game->bot,
                    game->paddle_hits);
-
-            bot_flash = 4;
+            events |= PHYS_EVENT_HIT_BOT;
 
             /* Schrittgrößen ab diesem Sub-Step neu kalibrieren */
             step_x = ball->vx / (sub_steps - s);
@@ -370,8 +368,7 @@ bool physics_update_ball(game_state_t *game)
             game->paddle_hits++;
             reflect_paddle(ball, &game->player,
                    game->paddle_hits);
-
-            player_flash = 4;
+            events |= PHYS_EVENT_HIT_PLAYER;
 
             /* Schrittgrößen ab diesem Sub-Step neu kalibrieren */
             step_x = ball->vx / (sub_steps - s);
@@ -383,16 +380,23 @@ bool physics_update_ball(game_state_t *game)
         {
             game->score += 1;
             reset_ball(game, /*dir_down=*/1);
-            show_countdown();
+            events |= PHYS_EVENT_SCORED;
             break;                                            /* Frame fertig       */
         }
         else if (ball->y > game->field_height)                /* unten raus -> Ende */
         {
-            return false;
+            events |= PHYS_EVENT_GAME_OVER;
+            return events;
         }
     }
 
-    return true;  /* Spiel läuft weiter */
+    return events;  /* Events dieses Updates */
+}
+
+bool physics_update_ball(game_state_t *game)
+{
+    physics_event_t ev = physics_update_ball_events(game);
+    return (ev & PHYS_EVENT_GAME_OVER) == 0;
 }
 
 

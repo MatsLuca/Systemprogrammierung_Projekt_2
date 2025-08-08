@@ -18,8 +18,8 @@
 #include "cleanup.h" /* Beendet ncurses sicher und räumt Ressourcen auf */
 #include "config.h"  /* Globale Spielkonstanten  */
 
-#define PHYSICS_DT_MS 100   /* Alle 100 ms berechnen wir die Ball‑Physik (≈ 10 FPS) */
-#define RENDER_DT_MS   16   /* Alle 16 ms zeichnen wir einen neuen Frame (≈ 60 FPS) */
+#define PHYSICS_DT_MS 100   /* Fester Physik‑Zeitschritt ~10 Hz (ursprüngliches Tempo) */
+#define RENDER_DT_MS  16    /* Render‑Ziel ~60 FPS */
 
 /* ------------------------------------------------------------------
  * sleep_ms
@@ -112,7 +112,8 @@ int main(int argc, char *argv[])
     render_init();
 
     game_state_t game = physics_create_game(max_x, max_y);   /* Erstellt und initialisiert den kompletten Spielzustand */
-    unsigned long last_phys = ms_now();                       /* Zeitstempel des letzten Physik‑Updates */
+    unsigned long last_time   = ms_now();
+    unsigned long phys_acc_ms = 0;                            /* Akkumulator für Fix‑Timestep */
 
     /* Haupt-Spielschleife */
     bool running = true;
@@ -125,21 +126,32 @@ int main(int argc, char *argv[])
         }
         physics_player_update(&game, action.dx);               /* Bewegt das Spieler‑Paddle entsprechend der Eingabe */
 
-        /* Physik und KI werden nur etwa 10‑mal pro Sekunde aktualisiert */
+        /* Fix‑Timestep Physik: in 16ms‑Scheiben nachholen */
         unsigned long now = ms_now();
-        if (now - last_phys >= PHYSICS_DT_MS) {
-            ai_update(&game);                                     /* Berechnet die neue Position des Bot‑Paddles */
-            if (!physics_update_ball(&game)) {                     /* Aktualisiert Ballposition; false ⇒ Ball verfehlt -> Schleife beenden */
-                break;
+        unsigned long frame_ms = now - last_time;
+        last_time = now;
+        phys_acc_ms += frame_ms;
+
+        physics_event_t last_events = PHYS_EVENT_NONE;
+        while (phys_acc_ms >= PHYSICS_DT_MS) {
+            ai_update(&game);
+            last_events = physics_update_ball_events(&game);
+            if (last_events & PHYS_EVENT_GAME_OVER) {
+                goto game_over;
             }
-            last_phys = now;
+            if (last_events & PHYS_EVENT_SCORED) {
+                /* UI‑Countdown separat anzeigen */
+                render_countdown();
+            }
+            phys_acc_ms -= PHYSICS_DT_MS;
         }
 
-        /* Zeichnet das aktuelle Spielfeld (ca. 60 Frames pro Sekunde) */
-        render_frame(&game);
+        /* Zeichnet das aktuelle Spielfeld */
+        render_frame(&game, last_events);
         sleep_ms(RENDER_DT_MS);
     }
 
+game_over:
     /* Spielende: wartet auf eine Taste, bevor das Programm beendet */
     nodelay(stdscr, FALSE);
     mvprintw(game.field_height / 2, 2, "Game over - press any key");
